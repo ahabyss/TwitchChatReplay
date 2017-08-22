@@ -18,10 +18,10 @@ The extension is built to the 'build' directory.  You can open the extension in 
 
 ## Bugs
  
-If you have a problem please [open an issue] (https://github.com/ahabyss/TwitchChatReplay/issues/new).
+If you have a problem please [open an issue](https://github.com/ahabyss/TwitchChatReplay/issues/new).
 
 
 
 ## JSON Parsing
 
-The chat logs are from overrustle, and are converted into a readable format using a python analysis script, which can be found at [Twitch Chat Replay Parser] https://github.com/ahabyss/TCRParser. Using this you can easily parse any chat log so that it can be read with this extension.
+The chat logs are from overrustle, and are converted into a readable format using a python analysis script, which can be found at [Twitch Chat Replay Parser](https://github.com/ahabyss/TCRParser). Using this you can easily parse any chat log so that it can be read with this extension.
