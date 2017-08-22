@@ -1,0 +1,24 @@
+doctype html
+html(lang='en')
+    head
+        meta(content='text/html; charset=UTF-8', http-equiv='content-type')
+
+        title Twitch Chat Replay - Settings
+
+        link(rel='shortcut icon', href='/assets/images/favicon.ico', type='image/x-icon')
+        link(rel='stylesheet', type='text/css', href='/options/css/style.css')
+        script(src='/options/js/options.js')
+    body
+        #navbar.bodySection
+            input.navButton(type='button', id='generalNavButton', class='button', alt='General', value='General')
+            input.navButton(type='button', id='aboutNavButton', class='button', alt='About', value='About')
+        #content.bodySection
+            include pug/generalPanel
+            include pug/aboutPanel
+        #footer.bodySection
+            .copyright Copyright © Abyss, 2017
+            .socialLinks
+                a(href='https://github.com/ahabyss/TwitchChatReplay', target='_blank')
+                    img(src='/assets/images/github.png')
+                a(href='https://twitter.com/ahAbyss', target='_blank')
+                    img(src='/assets/images/twitter.png')

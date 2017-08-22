@@ -1,0 +1,52 @@
+.panel#generalPanel
+
+    .optionsBody
+        label.line
+            h2 General Settings
+            
+        label2.inline
+            input(type='checkbox' id='BTTVEmotesCheckbox')
+            | Better Twitch TV Emotes.
+        .tooltipTrigger(data-tooltip-html='#BTTVEmotesCheckboxTooltipHTML') ?
+
+        blanklabel.line
+                    
+        label2.inline
+            input(type='checkbox' id='TimestampsCheckbox')
+            | Enable Timestamps.
+        .tooltipTrigger(data-tooltip-html='#TimestampsCheckboxTooltipHTML') ?
+        
+        blanklabel.line
+        
+        label2.inline
+            input(type='checkbox' id='EmojisCheckbox')
+            | Enable Emojis.
+        .tooltipTrigger(data-tooltip-html='#EmojisCheckboxTooltipHTML') ?
+
+        blanklabel.line
+        
+        label2.inline
+            input(type='checkbox' id='BadgesCheckbox')
+            | Enable Badges.
+        .tooltipTrigger(data-tooltip-html='#BadgesCheckboxTooltipHTML') ?
+        
+        label.line
+            h2 BTTV Channels
+            .tooltipTrigger(data-tooltip-html='#AdditionalBTTVChannelsTooltipHTML') ?
+        
+        table#bttvChannelsList
+        
+        label.line
+            h2 Emote Filter
+            .tooltipTrigger(data-tooltip-html='#FilterEmotesTooltipHTML') ?
+        
+        table#emoteFilterList
+
+    input.saveSettingsButton(type='button', value='Save Settings')
+
+    #BTTVEmotesCheckboxTooltipHTML.tooltipHTML Enables BTTV emotes.
+    #TimestampsCheckboxTooltipHTML.tooltipHTML Turn on timestamps (synced to the video timer).
+    #EmojisCheckboxTooltipHTML.tooltipHTML Enables emoji replacement.
+    #BadgesCheckboxTooltipHTML.tooltipHTML Turn on badge display (note: badges are randomly generated for a twitch-feel)
+    #AdditionalBTTVChannelsTooltipHTML.tooltipHTML Custom Channel BTTV Icons to load and display. MonkaS is input by default as an example.
+    #FilterEmotesTooltipHTML.tooltipHTML Emotes in the table below will be hidden. (e.g. if you don't like haHAA or ResidentSleeper)

@@ -1,0 +1,32 @@
+#importStatus .statusIcon.error
+    background-image url('/assets/images/cross.png')
+    
+#hostStatusTable
+    display flex
+    flex-direction row
+    padding-left 1em
+    font-size 1.0em
+
+    margin-top 0.75em
+    
+    background $tableGradient
+
+#hostStatusTable .header
+    font-weight bold
+
+#hostNameColumn
+    padding-right 1.0em
+
+#hostNameColumn > *, #hostStatusColumn > *
+    padding 0.1em 0
+
+#hostStatusColumn .error
+    color $errorColor
+    font-weight bold
+
+#hostStatusColumn .success
+    color $navbarButtonActiveColor
+    font-weight bold
+
+#hostStatusColumn .inactive
+    opacity 0.75

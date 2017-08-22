@@ -1,0 +1,244 @@
+.show 
+    display block
+
+.chat-room
+    top 0px
+    
+.TCR-dropdown
+    display inline-block
+    
+.TCR-ddButton    
+    margin 10px!important
+    margin-bottom 0px!important
+    max-width 100px
+    width 100px
+    overflow hidden
+    text-overflow ellipsis
+    
+.TCR-ddMenu
+    display none
+    position absolute
+    overflow auto
+    zIndex 1
+    max-height 160px
+    overflow-y scroll
+    
+.TCR-ddMenu div
+    display block
+    margin-left 10px
+    overflow hidden
+    text-overflow ellipsis
+    width 100px
+    max-width 100px
+    white-space nowrap
+    color white
+    background #8a66cc
+    background2 #2c2541
+    padding 0 1rem
+    transition background .12s ease-in,color .12s ease-in,box-shadow .12s ease-in
+    cursor pointer
+    
+.TCR-ddMenu div:hover    
+    background #9d7bde
+    background2 #392e5c
+    color white
+    text-decoration none
+    
+.TCR-ddMenu div:focus
+    outline none
+    color white
+    box-shadow 0 0 6px 0 #9d7bde
+    
+.TCR-ddMenu div:active
+    background #8a66cc
+    color white
+    box-shadow 0 0 6px 0 #9d7bde
+    
+    
+.TCR-dropdownEp
+    display inline-block
+    
+.inactive
+    opacity 0.3
+        
+.TCR-ddEpButton    
+    margin 0px!important
+    margin-bottom 0px!important
+    max-width 55px
+    width 55px
+    overflow hidden
+    text-overflow ellipsis
+    
+.TCR-ddEpMenu
+    display none
+    position absolute
+    overflow auto
+    zIndex 1
+    max-height 160px
+    overflow-y scroll
+    
+.TCR-ddEpMenu div
+    display block
+    overflow hidden
+    text-overflow ellipsis
+    width 55px
+    max-width 55px
+    white-space nowrap
+    color white
+    background #8a66cc
+    background2 #2c2541
+    padding 0 1rem
+    transition background .12s ease-in,color .12s ease-in,box-shadow .12s ease-in
+    cursor pointer
+    
+.TCR-ddEpMenu div:hover    
+    background #9d7bde
+    background2 #392e5c
+    color white
+    text-decoration none
+    
+.TCR-ddEpMenu div:focus
+    outline none
+    color white
+    box-shadow 0 0 6px 0 #9d7bde
+    
+.TCR-ddEpMenu div:active
+    background #8a66cc
+    color white
+    box-shadow 0 0 6px 0 #9d7bde
+    
+    
+#TCR-timeDiv
+    display inline-block
+    border-radius 30px
+    border-color #6441a4
+    border-style solid
+    border-width 5px
+    padding 0 0.5rem
+    background #6441a4
+    color white
+    height 30px
+    width 61px
+    text-align center
+
+#TCR-playButton
+    margin 1rem!important
+    padding 0!important
+    //position absolute!important
+    //right calc(30% - 26px)
+    width 32px
+    
+#TCR-playButton:after
+    content ''
+    display inline-block
+    width 0
+    height 0
+    border transparent solid 6px
+    border-top-width 6px
+    border-bottom-width 0
+    border-top-color #ffffff
+    transition all .12s
+    margin 0 10px
+    transform rotate(270deg)
+    
+#TCR-playButton.pause:after
+    border-color transparent
+    border-left 3px solid white
+    border-right 3px solid white
+    border-top 0px
+    width 4px
+    height 10px
+    background transparent
+    position relative
+    vertical-align middle
+    transform rotate(0deg)
+    
+#TCR-panel
+    background-color #e0e0e0
+    height 210px!important
+    transition height 0.3s ease-in
+
+#TCR-panel.panelToggle
+    height 50px!important
+
+.message-line.chat-line.ember-view.tcrmsg.snacks
+    background orange
+    color white
+    
+.message-line.chat-line.ember-view.tcrmsg.fin
+    background black
+    color white
+
+.tcrmsgdiv
+    height 50px
+    display flex
+    
+.timestamp.float-left.tcrmsg 
+    display none
+    
+.from.tcrmsg 
+    display none
+    
+.colon.tcrmsg
+    display none
+
+.message.tcrmsg
+    margin auto
+    font-size xx-large
+    font-family cursive
+    
+#TCR-timeInput
+    width 60px
+    box-shadow: inset 0 0 0 1px #dad8de, 0 0 0 transparent
+    color #433f4a
+    position relative
+    padding 0.25 0.5
+    transition box-shadow .12s ease-in
+    border none
+    font-family inherit
+    font-size 1.2rem
+    line-height 2rem
+    text-align center
+    margin-right 10px
+    float right
+    right 42px
+    outline 0
+    
+#TCR-timeInput:focus
+    box-shadow inset 0 0 0 1px #7d5bbe, 0 0 6px -2px #7d5bbe
+    border 1px solid #aaa
+    color #000000
+    
+.scroll.chat-messages.panelToggle
+    bottom 50px!important
+    
+.scroll.chat-messages
+    bottom 210px!important
+    transition bottom 0.3s ease-in
+    
+.TCR-panelButton
+    margin 1rem!important
+    padding 0!important
+    position absolute!important
+    right 0
+    
+.panelButtonToggle
+    transform rotate(180deg)
+    
+.TCR-panelButton:after
+    content ''
+    display inline-block
+    width 0
+    height 0
+    border transparent solid 6px
+    border-top-width 6px
+    border-bottom-width 0
+    border-top-color #ffffff
+    transition all .12s
+    margin 0 10px
+    
+.textarea-contain
+    display none
+    
+.chat-interface__wrap
+    display none
