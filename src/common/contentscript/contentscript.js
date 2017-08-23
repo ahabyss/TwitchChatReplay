@@ -50,8 +50,8 @@ function init() {
     
     promises.push(settingsPromise);
     promises.push(getJSONLocalURLPromise);
-    
-    Promise.all(promises).then(function(data) {
+        
+    Promise.all(promises).then(function(data) {    
         var settings = data[0];
         var jsonURL = data[1];
                 
@@ -87,10 +87,8 @@ init();
 
 function chatLoaded() {
 
-    containerTab = $('.ember-application').first();
-    
-    deleteTwitchStuff();
-    setTimeout(deleteTwitchStuff, 1000);
+    document.title = 'Twitch Chat Replay';
+    containerTab = $(document.body).addClass('ember-application');
     
     if (settingsTimestamps === false) containerTab.append($('<style>').html('.timestamp{display: none}'));
     
@@ -150,6 +148,11 @@ function chatLoaded() {
     panelButton[0].addEventListener('click', function() {generalButtonClick(this);});
     playButton[0].addEventListener('click', function() {generalButtonClick(this);});
     
+    timeInput.on('keyup', function (e) {
+        if (e.keyCode === 13 && playing === false)
+            playPause();
+    });
+    
     if (settingsBTTVEmotes === true)
         loadBTTVEmotes(settingsBTTVChannels);
     
@@ -167,12 +170,6 @@ function chatLoaded() {
         }
     }
     });
-}
-
-function deleteTwitchStuff() {
-    containerTab.children('div').each(function(a, b) {if (b.classList.contains('TCR-ember-view') === false) b.remove();});
-    containerTab.children('noscript').each(function(a, b) {b.remove();});
-    containerTab.children('img').each(function(a, b) {b.remove();});
 }
 
 function populateShows() {
@@ -202,7 +199,6 @@ function loadShows(jsonURL) {
 
 function loadEpisodes() {
     loadJSON(function(response) {epJSON = JSON.parse(response);}, jsonID + showJSON[currentShow][2] + currentEp.toString() + '.json');
-    
     currentMsgTime = epJSON.index.shift();
     currentMsgData = epJSON.data.shift();
     firstMsgTime = currentMsgTime;
@@ -278,36 +274,40 @@ function resetPlayback() {
     pauseTime = 0;
 }
 
+function playPause() {
+    if (playButton[0].classList.contains('inactive') === false) {
+        timeDiv[0].classList.remove('inactive');
+        playButton[0].classList.toggle('pause');
+        playing = !playing;
+        
+        if (playing === true) {
+        
+            timeInputValueArray = timeInput[0].value.split(':');
+            if (timeInputValueArray.length > 1) {
+                loadEpisodes();
+                if (timeInputValueArray.length == 2) {
+                    pauseTime = (Number(timeInputValueArray[0]) * 60 + Number(timeInputValueArray[1])) * 1000;
+                } else {
+                    pauseTime = (Number(timeInputValueArray[0]) * 3600 + Number(timeInputValueArray[1]) * 60 + Number(timeInputValueArray[2])) * 1000;
+                }
+            }
+            timeInput[0].value = '';
+        
+            timeStart = Date.now();
+            startPlaying();
+            staydown.interval = 50;
+
+            } else {
+            pauseTime += Date.now() - timeStart;
+            staydown.interval = 1000000;              
+        }
+    }
+}
+
 function generalButtonClick(element) {
         switch (element.id) {
         case 'TCR-playButton': {
-            if (element.classList.contains('inactive') === false) {
-                timeDiv[0].classList.remove('inactive');
-                element.classList.toggle('pause');
-                playing = !playing;
-                
-                if (playing === true) {
-                
-                    timeInputValueArray = timeInput[0].value.split(':');
-                    if (timeInputValueArray.length > 1) {
-                        loadEpisodes();
-                        if (timeInputValueArray.length == 2) {
-                            pauseTime = (Number(timeInputValueArray[0]) * 60 + Number(timeInputValueArray[1])) * 1000;
-                        } else {
-                            pauseTime = (Number(timeInputValueArray[0]) * 3600 + Number(timeInputValueArray[1]) * 60 + Number(timeInputValueArray[2])) * 1000;
-                        }
-                    }
-                    timeInput[0].value = '';
-                
-                    timeStart = Date.now();
-                    startPlaying();
-                    staydown.interval = 50;
-
-                    } else {
-                    pauseTime += Date.now() - timeStart;
-                    staydown.interval = 1000000;              
-                }                
-            }
+            playPause();
             break;
         }
         case 'TCR-panelButton': {
@@ -534,7 +534,7 @@ function replaceTwitchEmoticonsByRanges(text, ttvG, btvG, ttvC) {
 
         if (emote.type === 'ttvG' || emote.type === 'ttvC') {
             // Unshift the emote HTML (but not as a string to allow us to process links, escape html, and other emotes)
-            var imageBaseUrl = '//static-cdn.jtvnw.net/emoticons/v1/' + emote.id;
+            var imageBaseUrl = 'https://static-cdn.jtvnw.net/emoticons/v1/' + emote.id;
             messageParts.unshift([
                 $('<img>').attr({
                     src: imageBaseUrl + '/1.0',
@@ -544,7 +544,7 @@ function replaceTwitchEmoticonsByRanges(text, ttvG, btvG, ttvC) {
                 }).addClass('emoticon')[0].outerHTML
             ]);
         } else if (emote.type === 'btvG') {
-            var imageBaseUrl = '//cdn.betterttv.net/emote/' + emote.id;
+            var imageBaseUrl = 'https://cdn.betterttv.net/emote/' + emote.id;
             messageParts.unshift([
                 $('<img>').attr({
                     src: imageBaseUrl + '/1x',

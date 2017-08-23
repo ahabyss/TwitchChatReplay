@@ -43,17 +43,9 @@
   },
   
   "permissions": [
-	"storage",
-    "*://www.twitch.tv/nonexistantCR/*"
+	"storage"
   ],
-  
-  "content_scripts": [
-    {
-      "matches": ["*://www.twitch.tv/nonexistantCR/*"],
-      "js": ["contentscript/vendor/jquery.min.js", "contentscript/vendor/autolinker.js", "contentscript/vendor/twemoji.min.js"]
-    }
-  ],
-  
+    
   "web_accessible_resources": [
 	"data/*.json"
   ],

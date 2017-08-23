@@ -109,6 +109,7 @@ function build(browser, buildMode) {
         buildPromises.push(buildHTML(binDirectory + '/browseraction/popup.pug', destDirectory + '/browseraction/popup.html'));
 
         buildPromises.push(buildCSS(binDirectory + '/contentscript/style.styl', destDirectory + '/contentscript/css/style.css', binDirectory + '/contentscript/style/'));
+        buildPromises.push(buildHTML(binDirectory + '/chatPopup.pug', destDirectory + '/chatPopup.html'));
         
         Promise.all(buildPromises).then(function() {
             if (buildMode === 'test') {

@@ -1,4 +1,248 @@
-.show 
+html
+    text-size-adjust 100%
+    font-size 62.5%
+    -webkit-text-size-adjust 100%
+
+body
+    background #faf9fa
+    color #19171c
+    font-family Helvetica Neue,Helvetica,Arial,sans serif
+    font-size 1.2rem
+    line-height 2rem
+    
+body.ember-application
+    height 100%!important    
+    overflow-x hidden
+
+    
+.chat-container, .ember-chat-container
+    background #faf9fa
+    color #19171c
+    
+*
+    margin 0
+    padding 0
+    box-sizing border-box
+    
+button
+    font-family inherit
+    border none
+    background none
+    color inherit
+    font-size 100%
+    
+.button
+    background #6441a4
+    color white
+    display inline-block
+    position relative
+    margin 0
+    padding 0 1rem
+    transition background .12s ease-in,color .12s ease-in,box-shadow .12s ease-in
+    font-weight 400
+    line-height 3rem
+    white-space nowrap
+    cursor pointer
+    font-size 12px
+    
+.button:hover
+    cursor pointer
+    
+.button:hover, .button:focus
+    cursor pointer
+    background #7d5bbc
+    color white
+    text-decoration none
+    
+.button:focus
+    box-shadow 0 0 6px 0 #7d5bbe
+    outline none
+    
+.button:active
+    background #6441a4
+    color white
+    box-shadow 0 0 6px 0 #7d5bbe
+ 
+.chat-interface
+    padding 0px
+    bottom 0
+    width 100%
+    position absolute
+    box-sizing border-box
+    left 0px
+    right 0px
+    height 210px
+ 
+input, textarea, select
+    border-radius 2px
+ 
+.chat-messages, .chat-line
+    font-family inherit!important
+    font-size inherit!important
+    
+.chat-messages
+    left 0px
+    right 0px
+    top 0px!important
+    bottom 114px
+    background-color #efeef1
+    position absolute
+    width auto!important
+    height auto!important
+    overflow hidden   
+    
+.chat-messages
+    font-size 13.33333px
+    line-height 17.33333px
+    
+.tse-scroll-content
+    width auto!important
+    height auto!important
+    position absolute
+    top 0
+    bottom 0
+    left 0
+    right 0
+    overflow hidden
+    overflow-y scroll
+    padding 0px
+    
+.tse-scroll-content::-webkit-scrollbar
+    width 0
+    height 0
+ 
+.top-0
+    top 0!important
+    
+.right-0
+    right 0!important
+    
+.left-0
+    left 0!important
+    
+.bottom-0
+    bottom 0!important
+    
+.pos-fixed
+    position fixed
+
+.ember-chat-container
+    height 100%
+    width 100%
+    
+.ember-chat
+    position relative
+    height 100%
+    min-width 250px
+    margin 0px
+    
+.ember-view.ember-chat.roomMode
+    background #efeef1!important
+    
+.chat-room
+    top 0px
+    left 0
+    right 0
+    bottom 0
+    position absolute
+    display block
+    z-index 4
+    background-clip content-box
+
+.tse-content
+    overflow hidden!important
+    
+.chat-lines
+    padding 10px 0
+    list-style-type none
+    
+ol, ul, li
+    list-style none
+    list-style-type none
+    
+p#chat_line_list.line.chat_line, .message-line.chat-line
+    word-break break-word
+    padding 0.4em 0.8em
+    line-height 1.3em
+    
+.chat-line
+    font-size 12px
+    line-height 20px
+    padding 6px 20px
+    margin -3px 0
+    word-wrap break-word
+    list-style-position unset
+    
+li
+    list-style-position inside
+    
+.timestamp
+    color #6e6779
+    margin-right 5px
+    
+.badges
+    display inline-block
+    
+.badges:after
+    content ''
+    display table
+    clear both
+    
+.from
+    font-weight 700
+    text-transform none!important
+    word-break break-all
+    
+.colon
+    margin-right 2px
+    
+img.chat_line, img.message
+    vertical-align baseline!important
+    
+.emoticon
+    vertical-align baseline!important
+    display inline-block
+    padding-top 5px
+    background-position center center
+    background-repeat no-repeat
+    margin -0.5rem 0
+    
+img
+    border none
+    vertical-align top
+    max-width 100%
+    
+.line.admin, .line.staff, .line.broadcaster, .line.mod, a.line.turbo, a.line.subscriber, .badge, a.badge
+    border-radius 2px
+    margin -1px 3px 1px 0
+    float none
+
+.float-left
+    float none!important
+    
+.badges.subscriber
+    cursor pointer
+    
+.badge
+    height 18px
+    min-width 18px
+    display inline-block
+    vertical-align middle
+    float left
+    margine 1px 3px 1px 0
+    
+.turbo
+    cursor pointer
+    background #6441a5 url(https://web-cdn.ttvnw.net/images/xarth/badge_turbo.svg)
+    background-size 100%
+    
+.bttv-emoji
+    height auto
+    width 20px
+    margin-bottom -4px
+    display inline-block
+    
+.TCR-ddMenu.show, .TCR-ddEpMenu.show
     display block
 
 .chat-room
@@ -19,7 +263,7 @@
     display none
     position absolute
     overflow auto
-    zIndex 1
+    z-Index 1
     max-height 160px
     overflow-y scroll
     
@@ -33,14 +277,12 @@
     white-space nowrap
     color white
     background #8a66cc
-    background2 #2c2541
     padding 0 1rem
     transition background .12s ease-in,color .12s ease-in,box-shadow .12s ease-in
     cursor pointer
     
 .TCR-ddMenu div:hover    
     background #9d7bde
-    background2 #392e5c
     color white
     text-decoration none
     
@@ -53,7 +295,6 @@
     background #8a66cc
     color white
     box-shadow 0 0 6px 0 #9d7bde
-    
     
 .TCR-dropdownEp
     display inline-block
@@ -73,7 +314,7 @@
     display none
     position absolute
     overflow auto
-    zIndex 1
+    z-Index 1
     max-height 160px
     overflow-y scroll
     
