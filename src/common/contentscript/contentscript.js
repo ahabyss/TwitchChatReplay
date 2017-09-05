@@ -22,11 +22,13 @@ var ddEpMenuDiv;
 var timeInput;
 var ddButton;
 var ddMenuDiv;
+var delayInput;
 
 var settingsBTTVEmotes = null;
 var settingsBTTVChannels = null;
 
 var pauseTime = 0;
+var delayTime = 0;
 var timeStart = null;
 
 var suburl = '40fbcba3-7765-4f14-a625-8577d92e830d';
@@ -116,7 +118,15 @@ function chatLoaded() {
     panelButton = $('<button>').addClass('button TCR-panelButton').attr('id', 'TCR-panelButton');
     playButton = $('<button>').addClass('button TCR-playButton inactive').attr('id', 'TCR-playButton');
     timeDiv = $('<div>').addClass('TCR-timeDiv inactive').text('-').attr('id', 'TCR-timeDiv');
-    timeInput = $('<input>').addClass('TCR-timeInput inactive').attr('id', 'TCR-timeInput').attr('disabled', '').attr('value', '');
+    
+    inputsDiv = $('<div>').attr('id', 'TCR-inputsDiv');
+    
+    timeInput = $('<input>').addClass('TCR-timeInput inactive').attr('id', 'TCR-timeInput').attr('disabled', '').attr('value', 'seek');
+    
+    delayDiv = $('<div>');
+    
+    delayInput = $('<input>').addClass('inactive').attr('id', 'TCR-delayInput').attr('disabled', '').attr('value', 'delay');
+    delayLabel = $('<span>').addClass('inactive').attr('id', 'TCR-delayLabel').text('0 sec');
    
     contPanel.append(panelButton);
     contPanel.append(ddDiv);
@@ -127,7 +137,12 @@ function chatLoaded() {
     ddEpDiv.append(ddEpMenuDiv);
     contPanel.append(playButton);
     contPanel.append(timeDiv);
-    contPanel.append(timeInput);
+    
+    inputsDiv.append(timeInput);
+    delayDiv.append(delayInput);
+    delayDiv.append(delayLabel);
+    inputsDiv.append(delayDiv);
+    contPanel.append(inputsDiv);
     
     containerTab.append(emberView);
     emberView.append(emberChatContainer);
@@ -151,6 +166,11 @@ function chatLoaded() {
     timeInput.on('keyup', function (e) {
         if (e.keyCode === 13 && playing === false)
             playPause();
+    });
+    
+    delayInput.on('keyup', function (e) {
+        if (e.keyCode === 13)
+            updateDelay();
     });
     
     if (settingsBTTVEmotes === true)
@@ -214,12 +234,15 @@ function ddShowsMenuClick(element) { //Handle clicks on the shows dropdown menu,
         }
         default: {
             ddButton[0].innerHTML = element.innerHTML; 
-            currentShow = showJSON.findIndex(function(item, i) {return item[0] === element.innerHTML});
+            currentShow = showJSON.findIndex(function(item, i) {return item[0] === element.innerText});
             
             ddEpDiv[0].classList.remove('inactive');
             playButton[0].classList.remove('inactive');
             timeInput[0].classList.remove('inactive');
             timeInput[0].removeAttribute('disabled');
+            delayInput[0].classList.remove('inactive');
+            delayLabel[0].classList.remove('inactive');
+            delayInput[0].removeAttribute('disabled');
             
             while (ddEpMenuDiv[0].hasChildNodes()) {ddEpMenuDiv[0].removeChild(ddEpMenuDiv[0].lastChild);}
             
@@ -265,41 +288,72 @@ function raisePanel() {
     scrollChat[0].classList.remove('panelToggle');
 }
 
+function lowerPanel() {
+    panelButton[0].classList.add('panelButtonToggle');
+    contPanel[0].classList.add('panelToggle');
+    scrollChat[0].classList.add('panelToggle');
+}
+
 function resetPlayback() {
     playing = false;
     chatLines.find('.chat-line:lt(' + chatLines.find('.chat-line').length + ')').remove();
     playButton[0].classList.remove('pause');
+    playButton[0].classList.remove('next');
     timeStart = Date.now();
     timeDiv[0].innerHTML = '-';
     pauseTime = 0;
 }
 
+function updateDelay() {
+    delayInputValue = Number(delayInput[0].value);
+    if (isNaN(delayInputValue) === false) {
+        delayTime = delayInputValue;
+        delayInput[0].value = 'delay';
+    }
+    delayLabel[0].innerText = delayTime + ' sec';
+}
+
 function playPause() {
     if (playButton[0].classList.contains('inactive') === false) {
-        timeDiv[0].classList.remove('inactive');
-        playButton[0].classList.toggle('pause');
-        playing = !playing;
         
-        if (playing === true) {
-        
-            timeInputValueArray = timeInput[0].value.split(':');
-            if (timeInputValueArray.length > 1) {
-                loadEpisodes();
-                if (timeInputValueArray.length == 2) {
-                    pauseTime = (Number(timeInputValueArray[0]) * 60 + Number(timeInputValueArray[1])) * 1000;
-                } else {
-                    pauseTime = (Number(timeInputValueArray[0]) * 3600 + Number(timeInputValueArray[1]) * 60 + Number(timeInputValueArray[2])) * 1000;
+        if (playButton[0].classList.contains('next') === true) {
+            ddEpButton[0].innerHTML = ddEpButton[0].innerHTML.substring(0, 3) + (++currentEp);
+            loadEpisodes();
+            resetPlayback();
+            playPause();
+        } else {
+            timeDiv[0].classList.remove('inactive');
+            playButton[0].classList.toggle('pause');
+            playing = !playing;
+            
+            if (playing === true) {
+            
+                lowerPanel();
+            
+                timeInput[0].setAttribute('disabled', '');
+                delayInput[0].setAttribute('disabled', '');
+            
+                timeInputValueArray = timeInput[0].value.split(':');
+                if (timeInputValueArray.length > 1) {
+                    loadEpisodes();
+                    if (timeInputValueArray.length == 2) {
+                        pauseTime = (Number(timeInputValueArray[0]) * 60 + Number(timeInputValueArray[1])) * 1000;
+                    } else {
+                        pauseTime = (Number(timeInputValueArray[0]) * 3600 + Number(timeInputValueArray[1]) * 60 + Number(timeInputValueArray[2])) * 1000;
+                    }
+                    timeInput[0].value = 'seek';
                 }
-            }
-            timeInput[0].value = '';
-        
-            timeStart = Date.now();
-            startPlaying();
-            staydown.interval = 50;
+            
+                timeStart = Date.now();
+                startPlaying();
+                staydown.interval = 50;
 
-            } else {
-            pauseTime += Date.now() - timeStart;
-            staydown.interval = 1000000;              
+                } else {
+                timeInput[0].removeAttribute('disabled');
+                delayInput[0].removeAttribute('disabled');
+                pauseTime += Date.now() - timeStart;
+                staydown.interval = 1000000;              
+            }
         }
     }
 }
@@ -331,15 +385,22 @@ function startPlaying() {
         updateTimeDisplay()
         
         while (true) {
-            if ((pauseTime + Date.now() - timeStart) - (currentMsgTime - firstMsgTime) >= 2000) { //if this message is more than 2 seconds before NOW, don't even show the msg
+            if ((pauseTime + Date.now() - timeStart) - (currentMsgTime - firstMsgTime) >= 2000 + delayTime * 1000) { //if this message is more than 2 seconds before NOW just skip it
                 currentMsgTime = epJSON.index.shift();
                 currentMsgData = epJSON.data.shift();
-            } else if ((pauseTime + Date.now() - timeStart) - (currentMsgTime - firstMsgTime) >= 0) { //if this message occurs before NOW then show the msg
+            } else if ((pauseTime + Date.now() - timeStart) - (currentMsgTime - firstMsgTime) >= 0 + delayTime * 1000) { //if this message occurs before NOW then show the msg
                 chatLines.append(formatChatMessageTCR(currentMsgData, currentMsgTime));
                 currentMsgTime = epJSON.index.shift();
                 currentMsgData = epJSON.data.shift();
-            } else
+            } else //if this message is in the future just wait for next time
                 break;
+        }
+        
+        if (epJSON.index.length === 0 && currentMsgTime === undefined) {                
+            playPause();
+            
+            if (currentEp < showJSON[currentShow][1])
+                playButton[0].classList.toggle('next');
         }
         
         if (!userScrolling) {
@@ -368,7 +429,6 @@ function formatChatMessageTCR(messageData, time) {
     var timespan = $('<span>').addClass('timestamp float-left').text(formatmmss(Math.floor((time - firstMsgTime)/1000)));
 
     var badges = $('<span>').addClass('float-left badges');
-    if (settingsBadges === true) applyMessageBadges(messageData[6], badges);
 
     var from = $('<span>').addClass('from').css({'color': color}).text(name);
     var colon = $('<span>').addClass('colon').text(':');
@@ -394,6 +454,8 @@ function formatChatMessageTCR(messageData, time) {
         colon.addClass('tcrmsg');
     
         message.addClass('tcrmsg');
+    } else {
+        if (settingsBadges === true) applyMessageBadges(messageData[6], badges);
     }
     
     div.append(timespan).append(' ').append(badges).append(' ').append(from).append(colon).append(' ').append(message);
@@ -482,8 +544,8 @@ function replaceBTTVEmoticons(part) {
 
     return [
         part.replace(emote.code, $('<img>').attr({
-            src: emote['1x'],
-            srcset: emote['2x'] + ' 2x',
+            src: 'https:'+emote['1x'],
+            srcset: 'https:'+emote['2x'] + ' 2x',
             alt: emote.code,
             title: emote.code
         }).addClass('emoticon')[0].outerHTML)
