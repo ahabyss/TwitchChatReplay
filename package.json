@@ -1,6 +1,6 @@
 {
     "name": "TwitchChatReplay",
-    "version": "0.9.1",
+    "version": "0.9.3",
     "description": "replay twitch logs",
     "main": "build.js",
     "scripts": {
