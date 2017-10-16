@@ -242,7 +242,7 @@ img
     margin-bottom -4px
     display inline-block
     
-.TCR-ddMenu.show, .TCR-ddEpMenu.show
+.TCR-ddMenu.show, .TCR-ddEpMenu.show, #TCR-ddAltMenuDiv.show
     display block
 
 .chat-room
@@ -258,6 +258,7 @@ img
     width 100px
     overflow hidden
     text-overflow ellipsis
+    user-select none
     
 .TCR-ddMenu
     display none
@@ -266,6 +267,7 @@ img
     z-Index 1
     max-height 160px
     overflow-y scroll
+    user-select none
     
 .TCR-ddMenu div
     display block
@@ -309,6 +311,7 @@ img
     width 55px
     overflow hidden
     text-overflow ellipsis
+    user-select none
     
 .TCR-ddEpMenu
     display none
@@ -317,6 +320,7 @@ img
     z-Index 1
     max-height 160px
     overflow-y scroll
+    user-select none
     
 .TCR-ddEpMenu div
     display block
@@ -348,20 +352,86 @@ img
     color white
     box-shadow 0 0 6px 0 #9d7bde
     
-    
-#TCR-timeDiv
-    display inline-block
-    border-radius 30px
-    border-color #6441a4
-    border-style solid
-    border-width 5px
-    padding 0 0.5rem
-    background #6441a4
-    color white
-    height 30px
-    width 61px
-    text-align center
 
+#TCR-ddAltDiv
+    display inline-block
+           
+#TCR-ddAltButton    
+    margin 0px!important
+    margin-bottom 0px!important
+    max-width 61px
+    width 61px
+    overflow hidden
+    text-overflow ellipsis
+    user-select none
+    
+#TCR-ddAltMenuDiv
+    display none
+    position absolute
+    overflow auto
+    z-Index 1
+    max-height 160px
+    overflow-y scroll
+    user-select none
+    
+#TCR-ddAltMenuDiv div
+    display block
+    overflow hidden
+    text-overflow ellipsis
+    font-size 81%
+    width 61px
+    max-width 61px
+    white-space nowrap
+    color white
+    background #cc6666
+    background2 #2c2541
+    padding 0 1rem
+    transition background .12s ease-in,color .12s ease-in,box-shadow .12s ease-in
+    cursor pointer
+    
+.TCR-ddAltMenuItem.selected
+    background #66cc66!important
+    
+#TCR-ddAltMenuDiv div:hover    
+    background #9d7bde
+    background2 #392e5c
+    color white
+    text-decoration none
+    
+#TCR-ddAltMenuDiv div:focus
+    outline none
+    color white
+    box-shadow 0 0 6px 0 #9d7bde
+    
+#TCR-ddAltMenuDiv div:active
+    background #8a66cc
+    color white
+    box-shadow 0 0 6px 0 #9d7bde
+
+#TCR-ddEpLockDiv
+    width 55px
+    margin 15px 0px 0px 0px
+    
+#TCR-ddShowLockDiv
+    width 100px
+    margin 15px 10px 0px 10px
+    
+.TCR-lock
+    position absolute
+    top 0px
+    text-align center
+    font-size large
+    opacity 1
+    color black
+    background rgba(100,65,164,0.25)
+    user-select none
+    cursor pointer
+    z-index 1
+    
+.TCR-lock.unlocked
+    opacity 0
+    z-index -1
+    
 #TCR-playButton
     margin 1rem!important
     padding 0!important
@@ -413,8 +483,21 @@ img
     transition height 0.3s ease-in
 
 #TCR-panel.panelToggle
-    height 50px!important
+    height 70px!important
 
+.message-line.TCRHighlight
+    background-color #e8dcf4
+    box-shadow 4px 0px 0px #9d7bde inset
+    
+.message-line .mentioning
+    font-weight bold
+
+.message-line.admin
+    border-left 3px solid #6441a4
+    
+.message-line.admin div
+    margin-bottom 8px    
+    
 .message-line.chat-line.ember-view.tcrmsg.snacks
     background orange
     color white
@@ -491,7 +574,7 @@ img
 
 #TCR-inputsDiv
     float right
-
+    
 #TCR-delayLabel
     padding 1px 1px
     position relative
@@ -499,8 +582,45 @@ img
     right -60px
     color #555555
 
+   
+#TCR-seekBarDivWrap
+    display flex
+    align-items center
+    
+#TCR-seekBarDiv
+    flex 1
+    border 0
+    margin 0 10px 10px 10px
+    cursor pointer
+    position relative
+    background #777777
+    text-align center
+
+#TCR-seekBarDivBarPre
+    height 15px
+    pointer-events none
+    transition all 0.05s ease
+    background #545454
+    position absolute
+    
+#TCR-seekBarDivBar
+    height 15px
+    pointer-events none
+    transition all 0.05s ease
+    background #7d5bbe
+    position relative
+
+#TCR-seekBarDivTime
+    color #fff
+    top -3px
+    position absolute
+    width 100%
+    font-size 100%
+    pointer-events none
+    user-select none
+    
 .scroll.chat-messages.panelToggle
-    bottom 50px!important
+    bottom 70px!important
     
 .scroll.chat-messages
     bottom 210px!important

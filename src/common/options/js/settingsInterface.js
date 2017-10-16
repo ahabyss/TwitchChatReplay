@@ -7,7 +7,10 @@ var SETTINGS_SELECTORS = {
     emojis: '#EmojisCheckbox',
     badges: '#BadgesCheckbox',
     bttvChannelsList: '#bttvChannelsList',
-    emoteFilterList: '#emoteFilterList'
+    emoteFilterList: '#emoteFilterList',
+    vlcenabled: '#VLCCheckbox',
+    vlcpass: '#VLCPasswordComboBox',
+    nameHighlightList: '#nameHighlightList'
 };
 
 function getPageSettings(sanitize) {
@@ -21,6 +24,8 @@ function getPageSettings(sanitize) {
                 pageSettings[key] = $settingDOMElement.prop('checked') === true;
             } else if ($settingDOMElement.eq(0).attr('type') === 'radio') {
                 pageSettings[key] = $settingDOMElement.filter(':checked').val();
+            } else if ($settingDOMElement.attr('type') === 'combobox') {
+                pageSettings[key] = $settingDOMElement.val();
             } else if ($settingDOMElement.is('table')) {
                 pageSettings[key] = getTableEntries($settingDOMElement);
             }
@@ -40,6 +45,8 @@ function setPageSettings(settings) {
                 $settingDOMElement.prop('checked', settingValue === true);
             } else if ($settingDOMElement.eq(0).attr('type') === 'radio') {
                 $settingDOMElement.filter('[value=' + settingValue + ']').prop('checked', true);
+            } else if ($settingDOMElement.attr('type') === 'combobox') {
+                $settingDOMElement.prop('value', settingValue);
             } else if ($settingDOMElement.is('table')) {
                 setTableEntries($settingDOMElement, settingValue);
             }

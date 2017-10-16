@@ -3,9 +3,9 @@
 
   "name": "Twitch Chat Replay",
   "short_name": "TCR",
-  "description": "This extension lets you relive the twitch chat experience, by replaying chat logs",
-  "version": "0.9.2",
-  "version_name": "0.9.2 Beta",
+  "description": "Replays Twitch.tv chat logs (anime marathon)",
+  "version": "0.9.4",
+  "version_name": "0.9.4 Beta",
 
   "background": {
     "persistent": true,
@@ -41,9 +41,11 @@
 	"64": "assets/images/TCRIcon64.png",
 	"128": "assets/images/TCRIcon128.png"
   },
-  
+    
   "permissions": [
-	"storage"
+	"storage",
+    "notifications",
+    "http://127.0.0.1/*"
   ],
     
   "web_accessible_resources": [

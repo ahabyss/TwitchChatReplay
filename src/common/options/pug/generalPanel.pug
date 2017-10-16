@@ -6,35 +6,59 @@
             
         label2.inline
             input(type='checkbox' id='BTTVEmotesCheckbox')
-            | Better Twitch TV Emotes.
+            | Better Twitch TV Emotes
         .tooltipTrigger(data-tooltip-html='#BTTVEmotesCheckboxTooltipHTML') ?
 
         blanklabel.line
                     
         label2.inline
             input(type='checkbox' id='TimestampsCheckbox')
-            | Enable Timestamps.
+            | Enable Timestamps
         .tooltipTrigger(data-tooltip-html='#TimestampsCheckboxTooltipHTML') ?
         
         blanklabel.line
         
         label2.inline
             input(type='checkbox' id='EmojisCheckbox')
-            | Enable Emojis.
+            | Enable Emojis
         .tooltipTrigger(data-tooltip-html='#EmojisCheckboxTooltipHTML') ?
 
         blanklabel.line
         
         label2.inline
             input(type='checkbox' id='BadgesCheckbox')
-            | Enable Badges.
+            | Enable Badges
         .tooltipTrigger(data-tooltip-html='#BadgesCheckboxTooltipHTML') ?
+        
+        label.line
+            h2 VLC Connection
+            .tooltipTrigger(data-tooltip-html='#VLCTitleTooltipHTML') (Setup Info)
+            
+        label2.inline
+            input(type='checkbox' id='VLCCheckbox')
+            | Enable VLC Control
+
+        blanklabel.line
+            
+        label2.inline
+            | VLC 'Lua HTTP' Password 
+            input(type='combobox' id='VLCPasswordComboBox')
+        
+        label2.inline
+            a(href='https://hobbyistsoftware.com/vlcsetup-win-manual' id='vlctest') (Extended Help)
+        .tooltipTrigger(data-tooltip-html='#VLCComboboxTooltipHTML') ?
         
         label.line
             h2 BTTV Channels
             .tooltipTrigger(data-tooltip-html='#AdditionalBTTVChannelsTooltipHTML') ?
         
         table#bttvChannelsList
+        
+        label.line
+            h2 Username Highlight
+            .tooltipTrigger(data-tooltip-html='#nameHighlightTooltipHTML') ?
+        
+        table#nameHighlightList
         
         label.line
             h2 Emote Filter
@@ -50,3 +74,6 @@
     #BadgesCheckboxTooltipHTML.tooltipHTML Turn on badge display (note: badges are randomly generated for a twitch-feel)
     #AdditionalBTTVChannelsTooltipHTML.tooltipHTML Custom Channel BTTV Icons to load and display. MonkaS is input by default as an example. Add a row by clicking the + button at the end ->
     #FilterEmotesTooltipHTML.tooltipHTML Emotes in the table below will be hidden. (e.g. if you don't like haHAA or ResidentSleeper)
+    #VLCTitleTooltipHTML.tooltipHTML Setup VLC: Tools > Preferences, check 'All', Interface > 'Main interfaces', check 'Web', expand 'Main interfaces' > Lua, under 'Lua HTTP' in Password type a password (for example 'TCR'), click Save, restart VLC.
+    #VLCComboboxTooltipHTML.tooltipHTML Use this link to help you setup VLC, I do not recommend downloading the helper program, just do it manually.
+    #nameHighlightTooltipHTML.tooltipHTML Add names to this list to get a little highlight to the left in chat

@@ -1,4 +1,5 @@
 var browserBackend = require('browserBackend');
+var ID_CONTEXT_MENU_ITEM_VLC_ONLINE = "ID_CONTEXT_MENU_ITEM_VLC_ONLINE";
 
 function init() {
     browserBackend.listenForMessages(respondToMessage);

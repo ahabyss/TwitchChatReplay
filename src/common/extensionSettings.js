@@ -2,17 +2,19 @@ var clone = require('clone');
 var unique = require('uniq');
 var browserStorage = require('./browserStorage');
 
-
 var URL_EXTRACTION_REGEX = /^(?:\w+:\/\/)?(?:www\.)?([^\s\/]+(?:\/[^\s\/]+)*)\/*$/i;
+
 var DEFAULT_SETTINGS = {
     bttvEmotes: true,
     timestamps: true,
     emojis: true,
     badges: true,
-    bttvChannelsList: ['monkasen'],
-    emoteFilterList: []
+    vlcpass: 'TCR',
+    vlcenabled: true,
+    bttvChannelsList: ['monkasen', 'thefreaking2'],
+    emoteFilterList: [],
+    nameHighlightList: ['ahabyss']
 };
-
 
 function getSettings() {
     return new Promise(function(resolve) {

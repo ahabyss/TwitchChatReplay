@@ -4,6 +4,7 @@ require('./editableTable')($);
 function init() {
     buildBTTVEmoteTable();
     buildEmoteFilterListTable();
+    buildNameHighlightTable();
 }
 
 function buildBTTVEmoteTable() {
@@ -14,6 +15,19 @@ function buildBTTVEmoteTable() {
                 displayName: 'Channels',
                 type: 'text',
                 placeholder: 'Channel name goes here.'
+            }
+        ]
+    });
+}
+
+function buildNameHighlightTable() {
+    $('#nameHighlightList').EditableTable({
+        columns: [
+            {
+                name: 'name',
+                displayName: 'Twitch Username',
+                type: 'text',
+                placeholder: 'Twitch Username.'
             }
         ]
     });
