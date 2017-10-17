@@ -9,8 +9,8 @@ var DEFAULT_SETTINGS = {
     timestamps: true,
     emojis: true,
     badges: true,
-    vlcpass: 'TCR',
-    vlcenabled: true,
+    vlcPass: 'TCR',
+    vlcEnabled: true,
     bttvChannelsList: ['monkasen', 'thefreaking2'],
     emoteFilterList: [],
     nameHighlightList: ['ahabyss']

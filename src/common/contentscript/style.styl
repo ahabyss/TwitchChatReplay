@@ -14,7 +14,6 @@ body.ember-application
     height 100%!important    
     overflow-x hidden
 
-    
 .chat-container, .ember-chat-container
     background #faf9fa
     color #19171c
@@ -242,16 +241,16 @@ img
     margin-bottom -4px
     display inline-block
     
-.TCR-ddMenu.show, .TCR-ddEpMenu.show, #TCR-ddAltMenuDiv.show
+#TCR-ddShowMenuDiv.show, #TCR-ddEpMenuDiv.show, #TCR-ddAltMenuDiv.show
     display block
 
 .chat-room
     top 0px
     
-.TCR-dropdown
+#TCR-ddShowDiv
     display inline-block
     
-.TCR-ddButton    
+.TCR-ddShowButton    
     margin 10px!important
     margin-bottom 0px!important
     max-width 100px
@@ -260,7 +259,7 @@ img
     text-overflow ellipsis
     user-select none
     
-.TCR-ddMenu
+#TCR-ddShowMenuDiv
     display none
     position absolute
     overflow auto
@@ -269,7 +268,7 @@ img
     overflow-y scroll
     user-select none
     
-.TCR-ddMenu div
+#TCR-ddShowMenuDiv div
     display block
     margin-left 10px
     overflow hidden
@@ -283,22 +282,22 @@ img
     transition background .12s ease-in,color .12s ease-in,box-shadow .12s ease-in
     cursor pointer
     
-.TCR-ddMenu div:hover    
+#TCR-ddShowMenuDiv div:hover    
     background #9d7bde
     color white
     text-decoration none
     
-.TCR-ddMenu div:focus
+#TCR-ddShowMenuDiv div:focus
     outline none
     color white
     box-shadow 0 0 6px 0 #9d7bde
     
-.TCR-ddMenu div:active
+#TCR-ddShowMenuDiv div:active
     background #8a66cc
     color white
     box-shadow 0 0 6px 0 #9d7bde
     
-.TCR-dropdownEp
+#TCR-ddEpDiv
     display inline-block
     
 .inactive
@@ -313,7 +312,7 @@ img
     text-overflow ellipsis
     user-select none
     
-.TCR-ddEpMenu
+#TCR-ddEpMenuDiv
     display none
     position absolute
     overflow auto
@@ -322,7 +321,7 @@ img
     overflow-y scroll
     user-select none
     
-.TCR-ddEpMenu div
+#TCR-ddEpMenuDiv div
     display block
     overflow hidden
     text-overflow ellipsis
@@ -336,18 +335,18 @@ img
     transition background .12s ease-in,color .12s ease-in,box-shadow .12s ease-in
     cursor pointer
     
-.TCR-ddEpMenu div:hover    
+#TCR-ddEpMenuDiv div:hover    
     background #9d7bde
     background2 #392e5c
     color white
     text-decoration none
     
-.TCR-ddEpMenu div:focus
+#TCR-ddEpMenuDiv div:focus
     outline none
     color white
     box-shadow 0 0 6px 0 #9d7bde
     
-.TCR-ddEpMenu div:active
+#TCR-ddEpMenuDiv div:active
     background #8a66cc
     color white
     box-shadow 0 0 6px 0 #9d7bde
@@ -485,9 +484,9 @@ img
 #TCR-panel.panelToggle
     height 70px!important
 
-.message-line.TCRHighlight
-    background-color #e8dcf4
-    box-shadow 4px 0px 0px #9d7bde inset
+//.message-line.TCR-Highlight
+    //background-color #e8dcf4
+    //box-shadow 4px 0px 0px #9d7bde inset
     
 .message-line .mentioning
     font-weight bold
@@ -509,15 +508,6 @@ img
 .tcrmsgdiv
     height 50px
     display flex
-    
-.timestamp.float-left.tcrmsg 
-    display none
-    
-.from.tcrmsg 
-    display none
-    
-.colon.tcrmsg
-    display none
 
 .message.tcrmsg
     margin auto

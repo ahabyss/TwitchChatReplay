@@ -2,66 +2,29 @@ var browserBackend = require('browserBackend');
 var extensionSettings = require('extensionSettings');
 var StayDown = require('staydown');
 
-var jsonID = null;
-var showJSON = null;
-var epJSON = [];
-var currentShow;   //0 based indexed
-var currentSeason; //1 based indexed because you think of season 1 as being the first
+var eID = null; //Extension ID from URL
+var showJSON = null; //Contains information on the playable anime
+var epJSON = []; //Array of loaded chat arrays (based on alts)
+var currentShow = null;   //0 based indexed
 var currentEp;     //1 based indexed because you think of episode 1 as being the first
-var showAlts;
-var selectedAlts = []
-var playing = false;
-
-var VLCFile;
-var VLCTime;
-var VLCState;
-var VLCPlaylist;
-
-var containerTab;
-var scrollChat;
-var contPanel;
-var chatLines;
-
-var ddAltDiv;
-var ddAltButton;
-var ddAltMenuDiv
-
-var panelButton;
-var playButton;
-
-var ddEpDiv;
-var ddEpButton;
-var ddEpMenuDiv;
-
-var ddButton;
-var ddMenuDiv;
-var delayInput;
-
-var settingsBTTVEmotes = null;
-var settingsBTTVChannels = null;
-
-var pauseTime = 0;
-var delayTime = 0;
-var skipTime = 0;
-var timeStart = null;
+var selectedAlts = [];
+var staydownChat = null;
+var settingsArray = null;
+var VLCInfo = [];
 
 var suburl = '40fbcba3-7765-4f14-a625-8577d92e830d';
 var primeurl = 'a1dd5073-19c3-4911-8cb4-c464a7bc1510';
 var modurl = '3267646d-33f0-4b17-b3df-f923a41db1d0';
 
-var firstMsgTime = [];
-var currentMsgTime = [];
-var currentMsgData = [];
+var autolinker = new Autolinker({urls: true, email: true, twitter: false, phone: false, stripPrefix: false});
 
-var chatDisplayLimit = 50;
-
-var bttvEmotes = {};
-var autolinker = null;
-
-var VLCImmunity = false;
+var playedTime = 0; //playtime of current episode
+var lastPlayUpdate = null;
+var delayTime = 0;
+var playing = false;
 
 function init() {
-    promises = [];
+    var promises = [];
     var settingsPromise = extensionSettings.getSettings();
     var getJSONLocalURLPromise = browserBackend.sendMessageToBackground({
         message: 'getShowsJSONURL'
@@ -71,63 +34,66 @@ function init() {
     promises.push(getJSONLocalURLPromise);
         
     Promise.all(promises).then(function(data) {    
-        var settings = data[0];
+        settingsArray = data[0];
         var jsonURL = data[1];
-                
-        settingsTimestamps = settings.timestamps;
-        settingsEmojis = settings.emojis;
-        settingsBadges = settings.badges;
-        settingsBTTVEmotes = settings.bttvEmotes;
-        settingsBTTVChannels = settings.bttvChannelsList;
-        settingsVLCPass = settings.vlcpass;
-        settingsVLCEnabled = settings.vlcenabled;
-        settingsEmoteFilterTable = settings.emoteFilterList;
-        settingsEmoteFilterList = [];
-        settingsNameHighlightList = settings.nameHighlightList;
-                
-        settingsNameHighlightHashTable = {};
-        settingsNameHighlightList.forEach(function(i) {settingsNameHighlightHashTable[i]=true});
         
-        settingsEmoteFilterTable.forEach(function(item) {
-            if (item.type === 'Emote')
-                settingsEmoteFilterList.push(item.value);
+        //additional settings to add to options panel
+        settingsArray.chatDisplayLimit = 50;
+        
+        //Process some of the settings:
+        settingsArray.nameHighlightHashTable = {};       
+        settingsArray.nameHighlightList.forEach(function(item) {
+            settingsArray.nameHighlightHashTable[item] = true;
         });
         
-        jsonID = jsonURL.substring(0, jsonURL.length-10);
+        settingsArray.emoteFilter = [];
+        settingsArray.emoteFilterList.forEach(function(item) {
+            if (item.type === 'Emote') {
+                settingsArray.emoteFilter.push(item.value);
+            }
+        });
         
-        chatLoaded();
+        if (settingsArray.bttvEmotes) {
+            settingsArray.bttvEmotesDict = {};
+            loadBTTVEmotes(settingsArray.bttvChannelsList, settingsArray.bttvEmotesDict);
+        }
+        
+        eID = jsonURL.substring(0, jsonURL.length-10);
+        
+        initComplete();
         loadShows(jsonURL);
         
-        if (settingsVLCEnabled)
+        if (settingsArray.vlcEnabled) {
             VLCInit();
-    });
-    
-    autolinker = new Autolinker({
-        urls: true,
-        email: true,
-        twitter: false,
-        phone: false,
-        stripPrefix: false
+        }
     });
 }
 
 init();
 
-function VLCInit() {
-    req = new XMLHttpRequest();
-    req.open('GET', 'http://127.0.0.1:8080/requests/status.json');
-    req.setRequestHeader("Authorization", 'Basic ' + btoa(':' + settingsVLCPass));
-   
-    req.onload = function () { //put refresh button if the init doesn't work?
-        if (req.status === 200) {
-            VLCStatus = JSON.parse(req.response);
+function VLCReq(argType, argOnLoad) {
+    var req = new XMLHttpRequest();
+    req.open('GET', 'http://127.0.0.1:8080/requests/' + argType);
+    req.setRequestHeader("Authorization", 'Basic ' + btoa(':' + settingsArray.vlcPass));
+    req.onload = function() {argOnLoad.apply(this, [req]);};
+    req.send(null);
+}
 
-            VLCFile = VLCStatus.information.category.meta.filename;
-            VLCTime = VLCStatus.time;
-            VLCState = VLCStatus.state;
+function VLCCommand(command, argOnLoad) { //pl_pause(play/pause toggle) seek&val= pl_next pl_forceresume pl_forcepause pl_stop
+    VLCReq('status.json?command=' + command, argOnLoad);
+}
+
+function VLCInit() { 
+    VLCReq('status.json', function(req) {
+        if (req.status === 200) {
+            var VLCStatus = JSON.parse(req.response);
+
+            VLCInfo.file = VLCStatus.information.category.meta.filename;
+            VLCInfo.time = VLCStatus.time;
+            VLCInfo.state = VLCStatus.state;
             
-            if (VLCState === 'playing')
-                VLCCommand('pl_forcepause');
+            if (VLCInfo.state === 'playing')
+                VLCCommand('pl_forcepause', function() {});
 
             VLCFindShow();          
             VLCPlaylistGet();
@@ -135,49 +101,104 @@ function VLCInit() {
             setTimeout(VLCUpdater, 500);
         } else {
             console.log('Error with VLC Init...');
-            console.log(req.status);
+            console.log(req.status + ' - ' + req.statusText);
             setTimeout(VLCInit, 500);
         }
-    }
-    
-    req.send(null);
+    });
 }
 
-function VLCSetupShow() {
-    timeStart = Date.now();
-    pauseTime = VLCTime * 1000;
+function VLCPlaylistGet() {
+    VLCReq('playlist.json', function(req) {
+        if (req.status === 200) {
+            VLCInfo.playlist = JSON.parse(req.response).children[0].children;
+        }
+    });
+}
+
+function VLCUpdater() {
     
-    if (VLCTime < showJSON[currentShow][3][currentEp - 1][0]) { //if VLC is pre-chat then move to chat start
-        pauseTime = (showJSON[currentShow][3][currentEp - 1][0]) * 1000;
-        VLCCommand('seek&val=' + Math.round(showJSON[currentShow][3][currentEp - 1][0]));
+    if (playedTime > -1000) {
+        VLCReq('status.json', function(req) {
+            if (req.status === 200) {
+                var VLCStatus = JSON.parse(req.response);
+
+                tempFile = VLCStatus.information.category.meta.filename;
+                tempTime = VLCStatus.time;
+                tempState = VLCStatus.state;
+                
+                /*if (false && (tempState != VLCInfo.state)) { //user play/paused in VLC
+                    if ((tempState === 'playing' || tempState === 'paused') && (VLCInfo.state === 'playing' || VLCInfo.state === 'paused')) {  //if we went from playing/paused to playing/paused (not other states)
+                        if (tempState === 'playing' || playing === true) { //only time we don't playpause is if VLC is now paused and we are paused (the other cross scenario should never happen)
+                            console.log('forcing playpause VLC');
+                            playPause(false);
+                            VLCInfo.state = tempState;
+                        } else {
+                            console.log("no state change because VLC is playing or TCR is paused");
+                        }
+                    } else {
+                        console.log("no state change because VLC was or is not (playing or paused)");
+                    }
+                }*/
+                
+                /*if (false && (tempFile != VLCInfo.file)) { //user changed file in VLC
+                    console.log('forcing VLC find show');
+                    VLCFindShow();
+                }*/
+
+                /*if (false && (Math.abs(tempTime - VLCInfo.time) > 2)) { //Time is out of sync (because user seeked in VLC or VLC is playing)
+                    //if Math.abs((Math.floor((playedTime + Date.now() - timeStart)/1000)) - tempTime)
+                
+                    console.log('loading btw haHAA');
+                
+                    loadEpisodeJSONs(); //needed in case user seeked backwards
+                
+                    playedTime = tempTime * 1000;
+                    updateTimeDisplay();
+                }*/
+                
+                VLCInfo.time = tempTime; //update the time we think VLC is at
+            }
+        });
     }
     
-    ddButton[0].classList.add('inactive');
-    ddEpButton[0].classList.add('inactive');
-    ddShowLockDiv[0].classList.remove('unlocked');
-    ddEpLockDiv[0].classList.remove('unlocked');
+    setTimeout(VLCUpdater, 500);
+}
+
+
+function VLCSetupShow() {
+    playedTime = VLCInfo.time * 1000;
+    
+    if (VLCInfo.time < showJSON[currentShow][3][currentEp - 1][0]) { //if VLC is pre-chat then move to chat start
+        playedTime = (showJSON[currentShow][3][currentEp - 1][0]) * 1000;
+        VLCCommand('seek&val=' + Math.round(showJSON[currentShow][3][currentEp - 1][0]), function() {});
+    }
+    
+    $('#TCR-ddShowButton')[0].classList.add('inactive');
+    $('#TCR-ddEpButton')[0].classList.add('inactive');
+    $('#TCR-ddShowLockDiv')[0].classList.remove('unlocked');
+    $('#TCR-ddEpLockDiv')[0].classList.remove('unlocked');
     
     updateTimeDisplay();
 }
 
 function VLCFindShow() {
-    regexRWBYShow = /([Rr]+[Ww]+[Bb]+[Yy])/
-    regexRWBYSeason = /([Vv][Oo][Ll]|[Vv][Oo][Ll][Uu][Mm][Ee]|[Ss][Ee][Aa][Ss][Oo][Nn])(\s*)([-#:]*)(\s*)(\d{1,2})/
-    regexRWBYEpi = /([Cc][Hh][Aa][Pp][Tt][Ee][Rr]|[Ee][Pp][Ii]|[Ee][Pp][Ii][Ss][Oo][Dd][Ee])(\s*)([-#:]*)(\s*)(\d{1,2})/
+    var regexRWBYShow = /([Rr]+[Ww]+[Bb]+[Yy])/;
+    var regexRWBYSeason = /([Vv][Oo][Ll]|[Vv][Oo][Ll][Uu][Mm][Ee]|[Ss][Ee][Aa][Ss][Oo][Nn])(\s*)([-#:]*)(\s*)(\d{1,2})/;
+    var regexRWBYEpi = /([Cc][Hh][Aa][Pp][Tt][Ee][Rr]|[Ee][Pp][Ii]|[Ee][Pp][Ii][Ss][Oo][Dd][Ee])(\s*)([-#:]*)(\s*)(\d{1,2})/;
 
     var tempShow;
     var tempEp;
     var tempSeason;
     
-    if (regexRWBYShow.test(VLCFile)) { //If we're playing RWBY
-        seasonRes = regexRWBYSeason.exec(VLCFile);
+    if (regexRWBYShow.test(VLCInfo.file)) { //If we're playing RWBY
+        seasonRes = regexRWBYSeason.exec(VLCInfo.file);
         if (seasonRes === null) { //assume first season
             tempSeason = 1;
         } else {
             tempSeason = Number(seasonRes[5]);
         }
         
-        epiRes = regexRWBYEpi.exec(VLCFile);       
+        epiRes = regexRWBYEpi.exec(VLCInfo.file);       
         if (epiRes === null) {
             tempEp = 1;
             console.log('This should never happen, try to rename your files cleanly (i.e. RWBY Volume 1 Chapter 1 - blah)');
@@ -195,188 +216,72 @@ function VLCFindShow() {
 
     setCurrentShow(tempShow);
     setCurrentEp(tempEp);
+    resetPlayback(false);
     
     VLCSetupShow();
 }
 
-function VLCCommand(command) { //pl_pause(play/pause toggle) seek&val= pl_next pl_forceresume pl_forcepause pl_stop
-  var vlcPassword = localStorage.getItem('vlcPassword');
-  var password = vlcPassword;
-  var req = new XMLHttpRequest();
-  req.open('GET', 'http://127.0.0.1:8080/requests/status.xml?command=' + command);
-  req.setRequestHeader("Authorization", 'Basic ' + btoa(':' + settingsVLCPass));
-  req.send();
-}
-
-function VLCUpdater() {
-    
-    if (pauseTime > -1000) {
-        req = new XMLHttpRequest();
-        req.open('GET', 'http://127.0.0.1:8080/requests/status.json');
-        req.setRequestHeader("Authorization", 'Basic ' + btoa(':' + settingsVLCPass));
-       
-        req.onload = function () {
-            if (req.status === 200) {
-                VLCStatus = JSON.parse(req.response);
-
-                tempFile = VLCStatus.information.category.meta.filename;
-                tempTime = VLCStatus.time;
-                tempState = VLCStatus.state;
-                
-                if (false && (tempState != VLCState)) { //user play/paused in VLC
-                    if ((tempState === 'playing' || tempState === 'paused') && (VLCState === 'playing' || VLCState === 'paused')) {  //if we went from playing/paused to playing/paused (not other states)
-                        if (tempState === 'playing' || playing === true) { //only time we don't playpause is if VLC is now paused and we are paused (the other cross scenario should never happen)
-                            console.log('forcing playpause VLC');
-                            playPause();
-                            VLCState = tempState;
-                        } else {
-                            console.log("no state change because VLC is playing or TCR is paused");
-                        }
-                    } else {
-                        console.log("no state change because VLC was or is not (playing or paused)");
-                    }
-                }
-                
-                if (false && (tempFile != VLCFile)) { //user changed file in VLC
-                    console.log('forcing VLC find show');
-                    VLCFindShow();
-                }
-
-                if (false && (Math.abs(tempTime - VLCTime) > 2)) { //Time is out of sync (because user seeked in VLC or VLC is playing)
-                    //if Math.abs((Math.floor((pauseTime + Date.now() - timeStart)/1000)) - tempTime)
-                
-                    console.log('loading btw haHAA');
-                
-                    loadEpisodeJSONs(); //needed in case user seeked backwards
-                
-                    timeStart = Date.now();
-                    pauseTime = tempTime * 1000;
-                    updateTimeDisplay();
-                }
-                
-                VLCTime = tempTime; //update the time we think VLC is at
-            }
-        };
-        
-        req.send(null);
-    }
-    
-    setTimeout(VLCUpdater, 500);
-}
-
-function VLCPlaylistGet() {
-    req = new XMLHttpRequest();
-    req.open('GET', 'http://127.0.0.1:8080/requests/playlist.json');
-    req.setRequestHeader("Authorization", 'Basic ' + btoa(':' + settingsVLCPass));
-   
-    req.onload = function () {
-        if (req.status === 200) {
-            VLCPlaylistTemp = JSON.parse(req.response);
-
-            VLCPlaylist = VLCPlaylistTemp.children[0].children;
-        }
-    };
-
-    req.send(null);
-}
-
-function chatLoaded() {
+function initComplete() {
 
     document.title = 'Twitch Chat Replay';
-    containerTab = $(document.body).addClass('ember-application');
-    
-    if (settingsTimestamps === false) containerTab.append($('<style>').html('.timestamp{display: none}'));
-    
+    var containerTab = $(document.body).addClass('ember-application');
     var emberView = $('<div>').addClass('ember-view TCR-ember-view');
     var emberChatContainer = $('<div>').addClass('pos-fixed top-0 right-0 bottom-0 left-0 ember-chat-container');
     var emberChat = $('<div>').addClass('qa-chat ember-chat roomMode ember-view');
     var emberView2 = $('<div>').addClass('ember-view');
     var emberChatRoom = $('<div>').addClass('chat-room');
     var emberView3 = $('<div>').addClass('ember-view');
-    scrollChat = $('<div>').addClass('scroll chat-messages js-chat-messages showTimestamps showModIcons showAutoModActions');
-    contPanel = $('<div>').addClass('chat-interface js-chat-interface-wrapper').attr('id', 'TCR-panel');
+    var scrollChat = $('<div>').addClass('scroll chat-messages js-chat-messages showTimestamps showModIcons showAutoModActions').attr('id', 'TCR-scrollChat');
+    var contPanel = $('<div>').addClass('chat-interface js-chat-interface-wrapper').attr('id', 'TCR-panel');
     var scrollContent = $('<div>').addClass('tse-scroll-content').css({'right': '0px', 'width': '400px', 'height': '439px'});
     var tseContent = $('<div>').addClass('tse-content');
     var chatDisplay = $('<div>').addClass('chat-display ember-view');
-    chatLines = $('<ul>').addClass('chat-lines');
+    var chatLines = $('<ul>').addClass('chat-lines').attr('id', 'TCR-chatLines');
    
-    var ddDiv = $('<div>').addClass('TCR-dropdown');
-    ddButton = $('<button>').addClass('TCR-ddButton button').text('Anime Title').attr('id', 'TCR-ddButtonShows');
-    ddMenuDiv = $('<div>').addClass('TCR-ddMenu').attr('id', 'TCR-ddMenuShows');
-    ddShowLockDiv = $('<div>').addClass('TCR-lock unlocked').attr('id', 'TCR-ddShowLockDiv').html('🔒');
+    var ddShowDiv = $('<div>').attr('id', 'TCR-ddShowDiv');
+    var ddShowButton = $('<button>').addClass('TCR-ddShowButton button').text('Anime Title').attr('id', 'TCR-ddShowButton');
+    var ddShowMenuDiv = $('<div>').attr('id', 'TCR-ddShowMenuDiv');
+    var ddShowLockDiv = $('<div>').addClass('TCR-lock unlocked').attr('id', 'TCR-ddShowLockDiv').html('🔒');
     
-    ddEpDiv = $('<div>').addClass('TCR-dropdownEp');
-    ddEpButton = $('<button>').addClass('TCR-ddEpButton button inactive').text('Ep X').attr('id', 'TCR-ddEpButton');
-    ddEpMenuDiv = $('<div>').addClass('TCR-ddEpMenu').attr('id', 'TCR-ddEpMenu');
-    ddEpLockDiv = $('<div>').addClass('TCR-lock unlocked').attr('id', 'TCR-ddEpLockDiv').html('🔒');
+    var ddEpDiv = $('<div>').attr('id', 'TCR-ddEpDiv');
+    var ddEpButton = $('<button>').addClass('TCR-ddEpButton button inactive').text('Ep X').attr('id', 'TCR-ddEpButton');
+    var ddEpMenuDiv = $('<div>').attr('id', 'TCR-ddEpMenuDiv');
+    var ddEpLockDiv = $('<div>').addClass('TCR-lock unlocked').attr('id', 'TCR-ddEpLockDiv').html('🔒');
     
-    ddAltDiv = $('<div>').addClass('inactive').attr('id', 'TCR-ddAltDiv')
-    ddAltButton = $('<button>').addClass('TCR-ddAltButton button').text('Alts').attr('id', 'TCR-ddAltButton');
-    ddAltMenuDiv = $('<div>').attr('id', 'TCR-ddAltMenuDiv');
+    var ddAltDiv = $('<div>').addClass('inactive').attr('id', 'TCR-ddAltDiv')
+    var ddAltButton = $('<button>').addClass('TCR-ddAltButton button').text('Alts').attr('id', 'TCR-ddAltButton');
+    var ddAltMenuDiv = $('<div>').attr('id', 'TCR-ddAltMenuDiv');
     
-    panelButton = $('<button>').addClass('button TCR-panelButton').attr('id', 'TCR-panelButton');
-    playButton = $('<button>').addClass('button TCR-playButton inactive').attr('id', 'TCR-playButton');
+    var panelButton = $('<button>').addClass('button TCR-panelButton').attr('id', 'TCR-panelButton');
+    var playButton = $('<button>').addClass('button TCR-playButton inactive').attr('id', 'TCR-playButton');
     
-    seekBarDivWrap = $('<div>').addClass('inactive').attr('id', 'TCR-seekBarDivWrap');
-    seekBarDiv = $('<div>').attr('id', 'TCR-seekBarDiv');
-    seekBarDivBarPre = $('<div>').attr('id', 'TCR-seekBarDivBarPre');
-    seekBarDivBar = $('<div>').attr('id', 'TCR-seekBarDivBar');
-    seekBarDivTime = $('<div>').attr('id', 'TCR-seekBarDivTime').text('');
+    var seekBarDivWrap = $('<div>').addClass('inactive').attr('id', 'TCR-seekBarDivWrap');
+    var seekBarDiv = $('<div>').attr('id', 'TCR-seekBarDiv');
+    var seekBarDivBarPre = $('<div>').attr('id', 'TCR-seekBarDivBarPre');
+    var seekBarDivBar = $('<div>').attr('id', 'TCR-seekBarDivBar');
+    var seekBarDivTime = $('<div>').attr('id', 'TCR-seekBarDivTime').text('');
     
-    inputsDiv = $('<div>').attr('id', 'TCR-inputsDiv');
+    var inputsDiv = $('<div>').attr('id', 'TCR-inputsDiv');
     
-    delayDiv = $('<div>');  
-    delayInput = $('<input>').addClass('inactive').attr('id', 'TCR-delayInput').attr('disabled', '').attr('value', 'delay');
-    delayLabel = $('<span>').addClass('inactive').attr('id', 'TCR-delayLabel').text('0 sec');
-   
-    
+    var delayDiv = $('<div>');  
+    var delayInput = $('<input>').addClass('inactive').attr('id', 'TCR-delayInput').attr('disabled', '').attr('value', 'delay');
+    var delayLabel = $('<span>').addClass('inactive').attr('id', 'TCR-delayLabel').text('0 sec');
     
     contPanel.append(panelButton);
-    contPanel.append(ddDiv);
-     ddDiv.append(ddButton);
-     ddDiv.append(ddMenuDiv);
-     ddDiv.append(ddShowLockDiv);
-    contPanel.append(ddEpDiv);
-     ddEpDiv.append(ddEpButton);    
-     ddEpDiv.append(ddEpMenuDiv);
-     ddEpDiv.append(ddEpLockDiv);
+    contPanel.append(ddShowDiv.append(ddShowButton, ddShowMenuDiv, ddShowLockDiv));
+    contPanel.append(ddEpDiv.append(ddEpButton, ddEpMenuDiv, ddEpLockDiv));
     contPanel.append(playButton);
-    contPanel.append(ddAltDiv);
-     ddAltDiv.append(ddAltButton);
-     ddAltDiv.append(ddAltMenuDiv);
+    contPanel.append(ddAltDiv.append(ddAltButton, ddAltMenuDiv));
+    contPanel.append(seekBarDivWrap.append(seekBarDiv.append(seekBarDivBarPre, seekBarDivBar, seekBarDivTime)));
+    contPanel.append(inputsDiv.append(delayDiv.append(delayInput, delayLabel)));
     
-    contPanel.append(seekBarDivWrap);
-     seekBarDivWrap.append(seekBarDiv);
-      seekBarDiv.append(seekBarDivBarPre);
-      seekBarDiv.append(seekBarDivBar);
-      seekBarDiv.append(seekBarDivTime);
-    
-    inputsDiv.append(delayDiv);
-     delayDiv.append(delayInput);
-     delayDiv.append(delayLabel);
-    
-    contPanel.append(inputsDiv);
-    
-    containerTab.append(emberView);
-    emberView.append(emberChatContainer);
-    emberChatContainer.append(emberChat);
-    emberChat.append(emberView2);
-    emberView2.append(emberChatRoom);
-    emberChatRoom.append(emberView3);
-    emberView3.append(scrollChat);
-    emberView3.append(contPanel);
-    scrollChat.append(scrollContent);
-    scrollContent.append(tseContent);
-    tseContent.append(chatDisplay);
-    chatDisplay.append(chatLines);
-    
-    ddButton[0].addEventListener('click', function() {ddShowsMenuClick(this);});
+    containerTab.append(emberView.append(emberChatContainer.append(emberChat.append(emberView2.append(emberChatRoom.append(emberView3.append(scrollChat.append(scrollContent.append(tseContent.append(chatDisplay.append(chatLines)))), contPanel)))))));
+        
+    ddShowButton[0].addEventListener('click', function() {ddShowsMenuClick(this);});
     ddEpButton[0].addEventListener('click', function() {ddEpMenuClick(this);});
     ddAltButton[0].addEventListener('click', function() {ddAltMenuClick(this);});
-    
     panelButton[0].addEventListener('click', function() {generalButtonClick(this);});
     playButton[0].addEventListener('click', function() {generalButtonClick(this);});
-    
     seekBarDiv[0].addEventListener('click', function(e) {seekBarClick(e, this);});
     
     delayInput.on('keyup', function (e) {
@@ -384,10 +289,10 @@ function chatLoaded() {
             updateDelay();
     });
     
-    if (settingsBTTVEmotes === true)
-        loadBTTVEmotes(settingsBTTVChannels);
+    if (settingsArray.timestamps === false) 
+        containerTab.append($('<style>').html('.timestamp{display: none}'));
     
-    staydown = new StayDown({
+    staydownChat = new StayDown({
     target: scrollContent.get(0),
     interval: 500000,
     callback: function(event) {
@@ -404,38 +309,38 @@ function chatLoaded() {
 }
 
 function populateShows() {
-    for (i = 0; i < showJSON.length; i++) {
-        ddMenuItemTemp = document.createElement('div');
-        ddMenuItemTemp.id = 'ddMenuShowsItem'+i.toString();
-        ddMenuItemTemp.innerHTML = showJSON[i][0];
-        ddMenuDiv[0].appendChild(ddMenuItemTemp);
-        ddMenuItemTemp.addEventListener('click', function() {ddShowsMenuClick(this);});
+    for (var i = 0; i < showJSON.length; i++) {
+        var ddShowMenuItemTemp = document.createElement('div');
+        ddShowMenuItemTemp.id = 'ddMenuShowsItem'+i.toString();
+        ddShowMenuItemTemp.innerHTML = showJSON[i][0];
+        $('#TCR-ddShowMenuDiv')[0].appendChild(ddShowMenuItemTemp);
+        ddShowMenuItemTemp.addEventListener('click', function() {ddShowsMenuClick(this);});
     }
 }
 
-function populateEpisodes(epMenu) {
-    for (i = 0; i < showJSON[currentShow][1]; i++) {
-        ddEpMenuItemTemp = document.createElement('div');
+function populateEpisodes() {
+    for (var i = 0; i < showJSON[currentShow][1]; i++) {
+        var ddEpMenuItemTemp = document.createElement('div');
         ddEpMenuItemTemp.id = 'ddEpMenuItem'+i.toString();
         ddEpMenuItemTemp.innerHTML = 'Ep '+(i+1).toString();
-        epMenu.appendChild(ddEpMenuItemTemp);
+        $('#TCR-ddEpMenuDiv')[0].appendChild(ddEpMenuItemTemp);
         ddEpMenuItemTemp.addEventListener('click', function() {ddEpMenuClick(this);});
     }
 }
 
 function populateAlts() {
-    if (showAlts > 1) {
-        for (i = 0; i < showAlts; i++) {
-            ddAltMenuItemTemp = document.createElement('div');
+    if (showJSON[currentShow][2].length > 1) {
+        for (var i = 0; i < showJSON[currentShow][2].length; i++) {
+            var ddAltMenuItemTemp = document.createElement('div');
             ddAltMenuItemTemp.classList.add('TCR-ddAltMenuItem');
             ddAltMenuItemTemp.id = 'ddAltMenuItem'+i.toString();
             ddAltMenuItemTemp.innerHTML = showJSON[currentShow][2][i][1];
-            ddAltMenuDiv[0].appendChild(ddAltMenuItemTemp);
+            $('#TCR-ddAltMenuDiv')[0].appendChild(ddAltMenuItemTemp);
             ddAltMenuItemTemp.addEventListener('click', function() {ddAltMenuClick(this);});
         }
-        ddAltMenuDiv[0].childNodes[0].classList.add('selected');
+        $('#TCR-ddAltMenuDiv')[0].childNodes[0].classList.add('selected');
     } else {
-        ddAltMenuDiv[0].innerHTML = 'None';
+        $('#TCR-ddAltButton')[0].innerHTML = 'No Alts';
     }
 }
 
@@ -445,31 +350,18 @@ function loadShows(jsonURL) {
 }
 
 function loadEpisodeJSONs() {
-    for (i = 0; i < showAlts; i++) { //for each alt
-        loadJSON(function(response) {epJSON[i] = JSON.parse(response);}, jsonID + showJSON[currentShow][2][i][0] + currentEp.toString() + '.json');
-        currentMsgTime[i] = epJSON[i].index.shift(); //other way i could do alternate eps is by putting each in the same json, but each msg has a var identifiying it as being in X alt.... hmm
-        currentMsgData[i] = epJSON[i].data.shift();
-        firstMsgTime[i] = currentMsgTime[i];
-    }
-}
-
-function reloadJSONs() {
-    for (i = 0; i < showAlts; i++) { //for each alt
-        loadJSON(function(response) {epJSON[i] = JSON.parse(response);}, jsonID + showJSON[currentShow][2][i][0] + currentEp.toString() + '.json');
-        
-        currentMsgTime[i] = epJSON[i].index.shift();
-        currentMsgData[i] = epJSON[i].data.shift();
-        firstMsgTime[i] = currentMsgTime[i];
+    for (var i = 0; i < showJSON[currentShow][2].length; i++) { //for each alt
+        loadJSON(function(response) {epJSON[i] = JSON.parse(response);}, eID + showJSON[currentShow][2][i][0] + currentEp.toString() + '.json');
     }
 }
 
 function ddShowsMenuClick(element) { //Handle clicks on the shows dropdown menu, if its the main button show the menu, if its a menu item select the item
     switch (element.id) {
-        case 'TCR-ddButtonShows': {
-            if (ddButton[0].classList.contains('inactive') === false) {
-                ddMenuDiv[0].classList.toggle("show");
+        case 'TCR-ddShowButton': {
+            if ($('#TCR-ddShowButton')[0].classList.contains('inactive') === false) {
+                $('#TCR-ddShowMenuDiv')[0].classList.toggle("show");
                 raisePanel();
-                resetPlayback();
+                resetPlayback(true);
             }
             break;
         }
@@ -479,6 +371,7 @@ function ddShowsMenuClick(element) { //Handle clicks on the shows dropdown menu,
             
             setCurrentShow(tempShow);
             setCurrentEp(1); //default to 1st episode
+            resetPlayback(false);
             break;
         }
     }
@@ -487,37 +380,37 @@ function ddShowsMenuClick(element) { //Handle clicks on the shows dropdown menu,
 function setCurrentShow(argShow) {    
     currentShow = argShow;
 
-    ddButton[0].innerHTML = ddMenuDiv[0].childNodes[currentShow].innerHTML; 
+    $('#TCR-ddShowButton')[0].innerHTML = $('#TCR-ddShowMenuDiv')[0].childNodes[currentShow].innerHTML; 
 
-    ddEpButton[0].classList.remove('inactive');
-    playButton[0].classList.remove('inactive');
+    $('#TCR-ddEpButton')[0].classList.remove('inactive');
+    $('#TCR-playButton')[0].classList.remove('inactive');
     
-    seekBarDivWrap[0].classList.remove('inactive');
-    ddAltDiv[0].classList.remove('inactive');
+    $('#TCR-seekBarDivWrap')[0].classList.remove('inactive');
     
-    delayInput[0].classList.remove('inactive');
-    delayLabel[0].classList.remove('inactive');
-    delayInput[0].removeAttribute('disabled');
+    if (showJSON[currentShow][2].length > 1)
+        $('#TCR-ddAltDiv')[0].classList.remove('inactive');
     
+    $('#TCR-delayInput')[0].classList.remove('inactive');
+    $('#TCR-delayInput')[0].removeAttribute('disabled');
+    
+    $('#TCR-delayLabel')[0].classList.remove('inactive');
+    
+    var ddEpMenuDiv = $('#TCR-ddEpMenuDiv');
     while (ddEpMenuDiv[0].hasChildNodes()) {ddEpMenuDiv[0].removeChild(ddEpMenuDiv[0].lastChild);}
-    populateEpisodes(ddEpMenuDiv[0]);
+    populateEpisodes();
     
-    showAlts = showJSON[currentShow][2].length;//gotta be sure to make the others single showings conform to this alt array
     selectedAlts = [0];
     
+    var ddAltMenuDiv = $('#TCR-ddAltMenuDiv');
     while (ddAltMenuDiv[0].hasChildNodes()) {ddAltMenuDiv[0].removeChild(ddAltMenuDiv[0].lastChild);}
     populateAlts();
-    //showJSON[currentShow][3][currentEp - 1][0], intro dur: (this value is the timestamp when we begin to have chat data)
-    //showJSON[currentShow][3][currentEp - 1][1], this value is the timestamp when chat data is ended for this episode
 }
 
 function setCurrentEp(argEp) {
     currentEp = argEp;
     
-    ddEpButton[0].innerHTML = 'Ep ' + currentEp; 
-
-    skipTime = showJSON[currentShow][3][currentEp - 1][0];
-    seekBarDivBarPre[0].style.width = 100 * (showJSON[currentShow][3][currentEp - 1][0]) / (showJSON[currentShow][3][currentEp - 1][1]) + '%';
+    $('#TCR-ddEpButton')[0].innerHTML = 'Ep ' + currentEp; 
+    $('#TCR-seekBarDivBarPre')[0].style.width = 100 * (showJSON[currentShow][3][currentEp - 1][0]) / (showJSON[currentShow][3][currentEp - 1][1]) + '%';
     
     loadEpisodeJSONs();
 }
@@ -525,16 +418,16 @@ function setCurrentEp(argEp) {
 function ddEpMenuClick(element) { //Handle clicks on the episodes dropdown menu, if its the main button show the menu, if its a menu item select the item
     switch (element.id) {
         case 'TCR-ddEpButton': {
-            if (ddEpButton[0].classList.contains('inactive') === false) {
-                ddEpMenuDiv[0].classList.toggle("show"); 
-                resetPlayback();
+            if ($('#TCR-ddEpButton')[0].classList.contains('inactive') === false) {
+                $('#TCR-ddEpMenuDiv')[0].classList.toggle("show"); 
                 raisePanel();
+                resetPlayback(true);
             }
             break;
         }
         default: {
-            var tempEp = Number(element.innerHTML.substring(3));
-            setCurrentEp(tempEp);
+            setCurrentEp(Number(element.innerHTML.substring(3)));
+            resetPlayback(false);
             break;
         }
     }
@@ -543,121 +436,124 @@ function ddEpMenuClick(element) { //Handle clicks on the episodes dropdown menu,
 function ddAltMenuClick(element) { //Handle clicks on the alt broadcasts dropdown menu
     switch (element.id) {
         case 'TCR-ddAltButton': {
-            if (ddAltDiv[0].classList.contains('inactive') === false) {
-                ddAltMenuDiv[0].classList.toggle("show"); 
-                //resetPlayback(); 
+            if ($('#TCR-ddAltDiv')[0].classList.contains('inactive') === false) {
+                $('#TCR-ddAltMenuDiv')[0].classList.toggle("show"); 
                 raisePanel();
             }
             break;
         }
         default: {
-            var val = Number(element.id.substring(13));
+            var val = Number(element.id.substring(13)); //only 1 digit.. fix with regex?
             
             if (selectedAlts.some(function(item, i) {ind = i; return item === val}))
                 selectedAlts.splice(ind, 1);
             else
                 selectedAlts.push(val);
             
-            ddAltMenuDiv[0].childNodes[val].classList.toggle('selected');
+            $('#TCR-ddAltMenuDiv')[0].childNodes[val].classList.toggle('selected');
             break;
         }
     }
 }
 
 function seekBarClick(e, element) {
-    clickX = e.offsetX;
-    maxWidth = seekBarDiv[0].clientWidth;
-    secs = Math.floor((clickX / maxWidth) * Math.floor(showJSON[currentShow][3][currentEp - 1][1]));
+    var secs = Math.floor((e.offsetX / $('#TCR-seekBarDiv')[0].clientWidth) * Math.floor(showJSON[currentShow][3][currentEp - 1][1]));
     
-    if (settingsVLCEnabled) {
-        VLCCommand('seek&val=' + secs);
-        VLCTime = secs;
+    if (settingsArray.vlcEnabled) {
+        VLCCommand('seek&val=' + secs, function() {});
+        VLCInfo.time = secs;
     }
     
     loadEpisodeJSONs();
     
-    timeStart = Date.now();
-    pauseTime = secs * 1000;
+    playedTime = secs * 1000;
     updateTimeDisplay();
 }
 
 function togglePanel() {
-    panelButton[0].classList.toggle('panelButtonToggle');
-    contPanel[0].classList.toggle('panelToggle');
-    scrollChat[0].classList.toggle('panelToggle');
+    $('#TCR-panelButton')[0].classList.toggle('panelButtonToggle');
+    $('#TCR-panel')[0].classList.toggle('panelToggle');
+    $('#TCR-scrollChat')[0].classList.toggle('panelToggle');
 }
 
 function raisePanel() {
-    panelButton[0].classList.remove('panelButtonToggle');
-    contPanel[0].classList.remove('panelToggle');
-    scrollChat[0].classList.remove('panelToggle');
+    $('#TCR-panelButton')[0].classList.remove('panelButtonToggle');
+    $('#TCR-panel')[0].classList.remove('panelToggle');
+    $('#TCR-scrollChat')[0].classList.remove('panelToggle');
 }
 
 function lowerPanel() {
-    panelButton[0].classList.add('panelButtonToggle');
-    contPanel[0].classList.add('panelToggle');
-    scrollChat[0].classList.add('panelToggle');
+    $('#TCR-panelButton')[0].classList.add('panelButtonToggle');
+    $('#TCR-panel')[0].classList.add('panelToggle');
+    $('#TCR-scrollChat')[0].classList.add('panelToggle');
 }
 
-function resetPlayback() {
+function resetPlayback(removeChat) {
     playing = false;
-    chatLines.find('.chat-line:lt(' + chatLines.find('.chat-line').length + ')').remove();
-    playButton[0].classList.remove('pause');
-    playButton[0].classList.remove('next');
-    timeStart = Date.now();
-    seekBarDivBar[0].style.width = '0%';
-    seekBarDivTime[0].innerHTML = '';
-    pauseTime = 0;
+    if (removeChat) {
+        var numberOfChatMessagesDisplayed = $('#TCR-chatLines').find('.chat-line').length;
+        $('#TCR-chatLines').find('.chat-line:lt(' + numberOfChatMessagesDisplayed + ')').remove();
+    }
+    $('#TCR-playButton')[0].classList.remove('pause', 'next');
+    playedTime = 0;
+    updateTimeDisplay();
 }
 
 function updateDelay() {
-    delayInputValue = Number(delayInput[0].value);
+    var delayInputValue = Number($('#TCR-delayInput')[0].value);
     if (isNaN(delayInputValue) === false) {
-        delayTime = delayInputValue;
-        delayInput[0].value = 'delay';
+        delayTime = delayInputValue * 1000;
+        $('#TCR-delayInput')[0].value = 'delay';
     }
-    delayLabel[0].innerText = delayTime + ' sec';
+    $('#TCR-delayLabel')[0].innerText = (delayTime / 1000) + ' sec';
 }
 
-function playPause() {
-    if (playButton[0].classList.contains('inactive') === false) {
-        
-        if (playButton[0].classList.contains('next') === true) {
-            //ddEpButton[0].innerHTML = ddEpButton[0].innerHTML.substring(0, 3) + (++currentEp);
-            //loadEpisodes();
-            //resetPlayback();
-            //playPause();
-        } else {
-            seekBarDiv[0].classList.remove('inactive');
-            playButton[0].classList.toggle('pause');
+function playPause(updateVLC) {
+    if ($('#TCR-playButton')[0].classList.contains('inactive') === false) { //if we are setup to play
+        if ($('#TCR-playButton')[0].classList.contains('next') === true) { 
+            setCurrentEp(currentEp + 1);
+            resetPlayback(false);
+            playPause(false);
+        } else { //if we are pressing play/pause
             playing = !playing;
+            $('#TCR-playButton')[0].classList.toggle('pause');
             
             if (playing === true) {
                 lowerPanel();
-                delayInput[0].setAttribute('disabled', '');
-            
-                timeStart = Date.now();
-                startPlaying();
-                staydown.interval = 50;
-
+                lastPlayUpdate = Date.now();
+                staydownChat.interval = 50;
+                
+                if (settingsArray.vlcEnabled && updateVLC) {                //if we are sending to vlc
+                    if (Math.abs(VLCInfo.time - playedTime / 1000) > 2) {   //first check if vlc is far away from our time
+                        VLCCommand('seek&val=' + Math.floor(playedTime / 1000), function() {    //and seek if so
+                            VLCCommand('pl_forceresume', function() {       //once seeking is over then resume
+                                startPlaying();                             //and once vlc is playing start the chat
+                                VLCInfo.state = 'playing';
+                            });
+                            VLCInfo.time = playedTime / 1000;
+                        });
+                    } else {                                                //else if we dont need to seek just play
+                        VLCCommand('pl_forceresume', function() {
+                            startPlaying();
+                            VLCInfo.state = 'playing';
+                        });
+                    }
+                } else {
+                    startPlaying();
+                }
             } else {
-                delayInput[0].removeAttribute('disabled');
-                pauseTime += Date.now() - timeStart;
-                staydown.interval = 1000000;              
-            }
-        }
-    }
-}
-
-function playPauseSendVLC() {
-    if (playButton[0].classList.contains('inactive') === false) {        
-        if (playButton[0].classList.contains('next') === false) {
-            if (playing === true) {
-                VLCCommand('pl_forceresume');
-                VLCState = 'playing';
-            } else {
-                VLCCommand('pl_forcepause');
-                VLCState = 'paused';
+                staydownChat.interval = 1000000;
+                
+                if (settingsArray.vlcEnabled && updateVLC) {
+                    VLCCommand('pl_forcepause', function() {
+                        if (Math.abs(VLCInfo.time - playedTime / 1000) > 1) {
+                            VLCCommand('seek&val=' + Math.floor(playedTime / 1000), function() {
+                                VLCInfo.time = playedTime / 1000;
+                            });
+                        }
+                        VLCInfo.state = 'paused';
+                    });
+                }
             }
         }
     }
@@ -666,10 +562,7 @@ function playPauseSendVLC() {
 function generalButtonClick(element) {
         switch (element.id) {
         case 'TCR-playButton': {
-            playPause();
-            if (settingsVLCEnabled) {
-                playPauseSendVLC();
-            }
+            playPause(true);
             break;
         }
         case 'TCR-panelButton': {
@@ -681,117 +574,121 @@ function generalButtonClick(element) {
 
 function formatmmss(timeSec) {
     var secs = (timeSec % 60).toString();
-    return Math.floor(timeSec/60).toString() + ':' + '0'.repeat(2-secs.length) + secs
+    return Math.floor(timeSec / 60).toString() + ':' + '0'.repeat(2 - secs.length) + secs;
 }
 
 function updateTimeDisplay() {
-    seekBarDivBar[0].style.width = 100 * (Math.floor((pauseTime + Date.now() - timeStart)/1000)) / (showJSON[currentShow][3][currentEp - 1][1]) + '%';
-    seekBarDivTime[0].innerHTML = formatmmss(Math.floor((pauseTime + Date.now() - timeStart)/1000)) + ' / ' + formatmmss(Math.floor(showJSON[currentShow][3][currentEp - 1][1]));
+    if (currentShow != null) {
+        $('#TCR-seekBarDivBar')[0].style.width = 100 * (Math.floor((playedTime)/1000)) / (showJSON[currentShow][3][currentEp - 1][1]) + '%';
+        $('#TCR-seekBarDivTime')[0].innerHTML = formatmmss(Math.floor((playedTime)/1000)) + ' / ' + formatmmss(Math.floor(showJSON[currentShow][3][currentEp - 1][1]));
+    }
 }
 
 function startPlaying() {
     if (playing === true) {
-        updateTimeDisplay()
+        playedTime += Date.now() - lastPlayUpdate;
+        lastPlayUpdate = Date.now();
+        
+        updateTimeDisplay();
         
         while (true) {
             if (selectedAlts.every(function f(alt) { //for every selected alt index
-                if ((pauseTime + Date.now() - timeStart) - (currentMsgTime[alt] - firstMsgTime[alt]) >= 2000 + delayTime * 1000 + skipTime * 1000) { //if this message is more than 2 seconds before NOW just skip it
-                    currentMsgTime[alt] = epJSON[alt].index.shift();
-                    currentMsgData[alt] = epJSON[alt].data.shift();
-                } else if ((pauseTime + Date.now() - timeStart) - (currentMsgTime[alt] - firstMsgTime[alt]) >= 0 + delayTime * 1000 + skipTime * 1000) { //if this message occurs before NOW then show the msg
-                    chatLines.append(formatChatMessageTCR(currentMsgData[alt], currentMsgTime[alt] - firstMsgTime[alt] + skipTime * 1000));
-                    currentMsgTime[alt] = epJSON[alt].index.shift();
-                    currentMsgData[alt] = epJSON[alt].data.shift();
-                } else //if this message is in the future just wait for next time
+            
+                if (epJSON[alt].index.length > 0) {
+                    //"the time we have currently played" - "when this message occurs in the total session" - "the extra time to delay" - "time to offset the message"
+                    var offsetTime = showJSON[currentShow][3][currentEp - 1][0] * 1000; //episode intro
+                    var msgRelativeTime = playedTime - epJSON[alt].index[0] - delayTime - offsetTime;
+                    
+                    if (msgRelativeTime < 0) {
+                        return true; //this message is in the future so do nothing
+                    } else {
+                        if (msgRelativeTime < 3000) { //post the message if its less than 3 seconds in the past
+                            $('#TCR-chatLines').append(formatChatMessageTCR(epJSON[alt].data[0], epJSON[alt].index[0] + offsetTime));
+                        }
+                        epJSON[alt].index.shift(); //remove the message regardless
+                        epJSON[alt].data.shift();
+                    }
+                } else
                     return true;
+            
             })) {
                 break;
             }
         }
         
-        if (settingsVLCEnabled && (((pauseTime + Date.now() - timeStart)/1000) - showJSON[currentShow][3][currentEp - 1][1] > 0.0)) { //if we are 0.5 sec past the ep cutoff point, then load next ep stuff
-            console.log('skipping to next ep (VLC)');
+        if (playedTime - delayTime - showJSON[currentShow][3][currentEp - 1][1] * 1000 > 200) { //if we are 0.2 sec past the ep cutoff point, then load next ep stuff
             
-            pauseTime = -10000; //forces no action until VLCNextPause
+            playPause(false);
             
-            playPause();
-            setCurrentEp(currentEp + 1);
-            
-            VLCCommand('pl_next');
-            
-            //Set the VLC vars:
-            VLCState = 'playing';
-            VLCTime = 0;
-            
-            var ind;
-            if (found = VLCPlaylist.some(function(item, i) {ind = i; return item.name === VLCFile})){
-                VLCFile = VLCPlaylist[ind + 1].name;
+            if (settingsArray.vlcEnabled) {
+                setCurrentEp(currentEp + 1);
+                playedTime = 0;
+                
+                VLCInfo.state = 'playing';
+                VLCInfo.time = 0;
+                
+                var ind;
+                if (found = VLCInfo.playlist.some(function(item, i) {ind = i; return item.name === VLCInfo.file})){
+                    VLCInfo.file = VLCInfo.playlist[ind + 1].name;
+                } else {
+                    console.log("Error: couldn't find file in playlist, make the playlist simpler and be sure file names have no strange characters");
+                }
+                
+                VLCCommand('seek&val=0', function () {                        
+                    VLCCommand('pl_next', function () {
+                        VLCCommand('pl_forcepause', function () {
+                            setTimeout(function () {
+                                VLCSetupShow();
+                                playPause(true);
+                            }, 500);
+                        });
+                    });
+                });
+                
             } else {
-                console.log("Error: couldn't find file in playlist, make the playlist simpler and be sure file names have no strange characters");
+                if (currentEp < showJSON[currentShow][1])
+                    $('#TCR-playButton')[0].classList.toggle('next');
             }
-            
-            setTimeout(VLCNextPause, 200);
         } else {
             setTimeout(startPlaying, 200);
         }
         
-        /*if (selectedAlts.every(function t(alt){return epJSON[alt].index.length === 0 && currentMsgTime[alt] === undefined;})) { //if we reached the end of the chat messages for all alts
-            playPause();
-            
-            if (currentEp < showJSON[currentShow][1])
-                playButton[0].classList.toggle('next');
-        }*/
-        
         if (!userScrolling) {
-            var numberOfChatMessagesDisplayed = chatLines.find('.chat-line').length;
-            if (numberOfChatMessagesDisplayed >= chatDisplayLimit) {
-                chatLines.find('.chat-line:lt(' + Math.max(numberOfChatMessagesDisplayed - chatDisplayLimit, 10) + ')').remove();
+            var numberOfChatMessagesDisplayed = $('#TCR-chatLines').find('.chat-line').length;
+            if (numberOfChatMessagesDisplayed >= settingsArray.chatDisplayLimit) {
+                $('#TCR-chatLines').find('.chat-line:lt(' + Math.max(numberOfChatMessagesDisplayed - settingsArray.chatDisplayLimit, 10) + ')').remove();
             }
         }
     }
 }
 
-function VLCNextPause() {
-    VLCSetupShow();
-    playPause();
-    //playPauseSendVLC();
+ var hexToRgb = function(hex) {
+      var bigint = parseInt(hex, 16);
+      var r = (bigint >> 16) & 255;
+      var g = (bigint >> 8) & 255;
+      var b = bigint & 255;
+  
+      return [r, g, b];
 }
 
 function formatChatMessageTCR(messageData, time) {
 
-    name = messageData[0];
-    color = messageData[1];
-    msg = messageData[2];
+    var name = messageData[0];
+    var color = messageData[1];
+    var msg = messageData[2];
     
-    argBadges = messageData[6];
+    var argBadges = messageData[6];
     
     var line = $('<li>').addClass('message-line chat-line ember-view');
     var div = $('<div>');
-    
-    if (name === 'twitchnotify') {
-        line.addClass('admin');
-        var timespan;
-        var badges;
-        var from;
-        var colon;
-    } else {   
-        var timespan = $('<span>').addClass('timestamp float-left').text(formatmmss(Math.floor(time/1000)));
-        var badges = $('<span>').addClass('float-left badges');
-        var from = $('<span>').addClass('from').css({'color': color}).text(name);
-        var colon = $('<span>').addClass('colon').text(':');
-    }
-    
-    if (name in settingsNameHighlightHashTable) {
-        line.addClass('TCRHighlight');
-    }
-    
-    if (name === 'ohbot') {
-        argBadges.push(true);
-    }
-    
+
+    var timespan = $('<span>').addClass('timestamp float-left').text(formatmmss(Math.floor(time/1000)));
+    var badges = $('<span>').addClass('float-left badges');
+    var from = $('<span>').addClass('from').css({'color': color}).text(name);
+    var colon = $('<span>').addClass('colon').text(':');
     var message = $('<span>').addClass('message');
-    
-    if (msg.substring(0, 4) === "/me ") {
+
+    if (msg.substring(0, 4) === "/me ") { //this edits the message
         line.addClass('action');
         msg = msg.substring(4);
         message.css({ 'color': color });
@@ -799,27 +696,37 @@ function formatChatMessageTCR(messageData, time) {
     
     var messageHTML = textFormatter(msg, messageData[3], messageData[4], messageData[5]);
     message.html(messageHTML);
-
-    if (name === '_TCRMSG') {
-        if (msg === 'SNACK TIME')
+    
+    if (name in settingsArray.nameHighlightHashTable) {
+        line.addClass('TCR-Highlight');
+        var rgb = hexToRgb(color.substring(1));
+        line.css({'background-color': 'rgba(' + rgb[0] + ', ' + rgb[1] + ', ' + rgb[2] + ', 0.15)', 'box-shadow': '4px 0px 0px ' + color + ' inset'});
+    } else if (name === 'ohbot') {
+        argBadges[0] = true;
+        argBadges[1] = false;
+        argBadges[2] = true;
+        argBadges.push(true);
+    } else if (name === 'twitchnotify') {
+        line.addClass('admin');
+        timespan = badges = from = colon = null;
+    } else if (name === '_TCRMSG') {
+        if (msg === 'SNACK TIME') {
             line.addClass('tcrmsg snacks');
-        else
+        } else {
             line.addClass('tcrmsg fin');
+        }
         
         div.addClass('tcrmsgdiv');
-        
-        timespan.addClass('tcrmsg');
-        from.addClass('tcrmsg');
-        colon.addClass('tcrmsg');
-    
         message.addClass('tcrmsg');
-    } else {
-        if (settingsBadges === true && name != 'twitchnotify') 
-            applyMessageBadges(argBadges, badges);
+        
+        timespan = badges = from = colon = null;
     }
     
-    div.append(timespan).append(' ').append(badges).append(' ').append(from).append(colon).append(' ').append(message);
-    line.append(div);
+    if (settingsArray.badges === true) {
+        applyMessageBadges(argBadges, badges);
+    }
+    
+    line.append(div.append(timespan, ' ', badges, ' ', from, colon, ' ', message));
     
     return line;
 }
@@ -830,28 +737,28 @@ function textFormatter(text, ttvG, btvG, ttvC) {
     // further split parts by spaces
     var parts = [];
     messageParts.forEach(function(part) {
-        if(Array.isArray(part)) return parts.push(part);
+        if (Array.isArray(part)) 
+            return parts.push(part);
 
         parts = parts.concat(part.split(' '));
     });
+    
     messageParts = parts;
 
     // handles third party emotes, escaping, and linkification
     for(var i = 0; i < messageParts.length; i++) {
         var part = messageParts[i];
 
-        if (settingsBTTVEmotes === true) 
+        if (settingsArray.bttvEmotes === true) 
             part = replaceBTTVEmoticons(part);
         
-        if (settingsEmojis === true) 
+        if (settingsArray.emojis === true) 
             part = replaceEmoji(part);
         
-        //These two check if its already been adjusted (if string or not):
         part = replaceMentions(part);        
         part = escapeAndLink(part);
 
-        part = Array.isArray(part) ? part[0] : part;
-        messageParts[i] = part;
+        messageParts[i] = Array.isArray(part) ? part[0] : part;
     }
 
     return messageParts.join(' ');
@@ -859,38 +766,32 @@ function textFormatter(text, ttvG, btvG, ttvC) {
 
 function replaceMentions(part) {
     if (typeof part !== 'string') return part;
-        
-    if (part[0] === '@') {
+    
+    if (part[0] === '@')
         return [$('<span>').addClass('mentioning').text(part)[0].outerHTML];
-    }
-    else
-        return part;
+    
+    return part;
 };
 
 function replaceEmoji(part) {
     if (typeof part !== 'string') return part;
     
-    ret = part;
-    twemoji.parse(part, {'callback': 
+    var origPart = twemoji.parse(part, {'callback': 
         function(iconID, options) {
-            ret = ret.replace(twemoji.convert.fromCodePoint(iconID), $('<img>').attr({
-                src: ''.concat(options.base, options.size, '/', iconID, options.ext)
-            }).addClass('emoticon bttv-emoji')[0].outerHTML)
+            part = part.replace(twemoji.convert.fromCodePoint(iconID), $('<img>').attr({src: ''.concat(options.base, options.size, '/', iconID, options.ext)}).addClass('emoticon bttv-emoji')[0].outerHTML);
         }
     });
-
-    if (ret !== part)
-        return [ret];
-    else
-        return part;
+    
+    if (part != origPart)
+        return [part];
+    
+    return part;
 };
 
 function escapeAndLink(part) {
-  if (typeof part !== 'string') return part;
-
-  return autolinker.link(part.replace(/&/g, '&amp;').replace(/</g,'&lt;').replace(/>/g, '&gt;'));
+    if (typeof part !== 'string') return part;
+    return autolinker.link(part.replace(/&/g, '&amp;').replace(/</g,'&lt;').replace(/>/g, '&gt;'));
 };
-
 
 function replaceBTTVEmoticons(part) {
     if (typeof part !== 'string') return part;
@@ -898,10 +799,10 @@ function replaceBTTVEmoticons(part) {
     var codeWithoutSymbols = part.replace(/(^[~!@#$%\^&\*\(\)]+|[~!@#$%\^&\*\(\)]+$)/g, '');
 
     var emote = null;
-    if (bttvEmotes.hasOwnProperty(part)) {
-        emote = bttvEmotes[part];
-    } else if (bttvEmotes.hasOwnProperty(codeWithoutSymbols)) {
-        emote = bttvEmotes[codeWithoutSymbols];
+    if (settingsArray.bttvEmotesDict.hasOwnProperty(part)) {
+        emote = settingsArray.bttvEmotesDict[part];
+    } else if (settingsArray.bttvEmotesDict.hasOwnProperty(codeWithoutSymbols)) {
+        emote = settingsArray.bttvEmotesDict[codeWithoutSymbols];
     } else {
         return part;
     }
@@ -917,15 +818,14 @@ function replaceBTTVEmoticons(part) {
 };
 
 function pushAfterFilter(emotesToReplace, part, emote) {
-    if (settingsEmoteFilterList.length === 0)
+    if (settingsArray.emoteFilter.length === 0) {
         emotesToReplace.push(emote);
-    else if (settingsEmoteFilterList.includes(part) === false)
+    } else if (settingsArray.emoteFilter.includes(part) === false) {
         emotesToReplace.push(emote);
+    }
 }
 
 function replaceTwitchEmoticonsByRanges(text, ttvG, btvG, ttvC) {
-    if (!ttvG && !btvG && !ttvC) return [ text ];
-
     var emotesToReplace = [];
 
     ttvG.forEach(function(emote) {
@@ -934,7 +834,7 @@ function replaceTwitchEmoticonsByRanges(text, ttvG, btvG, ttvC) {
         pushAfterFilter(emotesToReplace, substringUnicode(text, emoteRangeBegin, emoteRangeEnd + 1), {id: emote[0], begin: emoteRangeBegin, end: emoteRangeEnd, type: 'ttvG'});
     });
     
-    if (settingsBTTVEmotes === true) {
+    if (settingsArray.bttvEmotes === true) {
         btvG.forEach(function(emote) {
             var emoteRangeBegin = emote[1][0]
             var emoteRangeEnd = emote[1][1]
@@ -951,7 +851,6 @@ function replaceTwitchEmoticonsByRanges(text, ttvG, btvG, ttvC) {
     emotesToReplace.sort(function(x, y) {return y.begin - x.begin;});
 
     var messageParts = [];
-
     emotesToReplace.forEach(function(emote) {
         var emoteText = substringUnicode(text, emote.begin, emote.end + 1)
 
@@ -991,76 +890,66 @@ function replaceTwitchEmoticonsByRanges(text, ttvG, btvG, ttvC) {
     return messageParts;
 };
 
-
-
 function charAt_lautis(string, index) {
-  var first = string.charCodeAt(index);
-  var second;
-  if (first >= 0xD800 && first <= 0xDBFF && string.length > index + 1) {
-    second = string.charCodeAt(index + 1);
-    if (second >= 0xDC00 && second <= 0xDFFF) {
-      return string.substring(index, index + 2);
+    var first = string.charCodeAt(index);
+    var second;
+    if (first >= 0xD800 && first <= 0xDBFF && string.length > index + 1) {
+        second = string.charCodeAt(index + 1);
+        if (second >= 0xDC00 && second <= 0xDFFF)
+            return string.substring(index, index + 2);
     }
-  }
-  return string[index];
+    return string[index];
 }
 
 function slice_lautis(string, start, end) {
-  var accumulator = "";
-  var character;
-  var stringIndex = 0;
-  var unicodeIndex = 0;
-  var length = string.length;
+    var accumulator = "";
+    var character;
+    var stringIndex = 0;
+    var unicodeIndex = 0;
+    var length = string.length;
 
-  while (stringIndex < length) {
-    character = charAt_lautis(string, stringIndex);
-    if (unicodeIndex >= start && unicodeIndex < end) {
-      accumulator += character;
+    while (stringIndex < length) {
+        character = charAt_lautis(string, stringIndex);
+        if (unicodeIndex >= start && unicodeIndex < end)
+            accumulator += character;
+        stringIndex += character.length;
+        unicodeIndex += 1;
     }
-    stringIndex += character.length;
-    unicodeIndex += 1;
-  }
-  return accumulator;
+    return accumulator;
 }
 
 function toNumber_lautis(value, fallback) {
-  if (value === undefined) {
-    return fallback;
-  } else {
-    return Number(value);
-  }
+    if (value === undefined)
+        return fallback;
+    else
+        return Number(value);
 }
 
 function substringUnicode(string, start, end) {
-  var realStart = toNumber_lautis(start, 0);
-  var realEnd = toNumber_lautis(end, string.length);
-  if (realEnd == realStart) {
-    return "";
-  } else if (realEnd > realStart) {
-    return slice_lautis(string, realStart, realEnd);
-  } else {
-    return slice_lautis(string, realEnd, realStart);
-  }
+    var realStart = toNumber_lautis(start, 0);
+    var realEnd = toNumber_lautis(end, string.length);
+    if (realEnd == realStart)
+        return "";
+    else if (realEnd > realStart)
+        return slice_lautis(string, realStart, realEnd);
+    else
+        return slice_lautis(string, realEnd, realStart);
 }
 
-
-
-
-
 function buildBadge() {
-  return $('<div>').addClass('float-left').addClass('badge');
+    return $('<div>').addClass('float-left').addClass('badge');
 };
 
 function applyMessageBadges(badgeData, badges) {
+    if (badges === null) return badges;
+    
     if (badgeData.length > 3) {
-        var badgeContent = buildBadge().addClass('mod').prop('title', 'Moderator')
-            .css('background-image', 'url(https://static-cdn.jtvnw.net/badges/v1/' + modurl + '/1)');
+        var badgeContent = buildBadge().addClass('mod').prop('title', 'Moderator').css('background-image', 'url(https://static-cdn.jtvnw.net/badges/v1/' + modurl + '/1)');
         badges.append(badgeContent).append(' ');
     }
     
     if (badgeData[2]) {
-        var badgeContent = buildBadge().addClass('subscriber').prop('title', 'Subscriber')
-            .css('background-image', 'url(https://static-cdn.jtvnw.net/badges/v1/' + suburl + '/1)');
+        var badgeContent = buildBadge().addClass('subscriber').prop('title', 'Subscriber').css('background-image', 'url(https://static-cdn.jtvnw.net/badges/v1/' + suburl + '/1)');
         badges.append(badgeContent).append(' ');
     }
     
@@ -1068,20 +957,18 @@ function applyMessageBadges(badgeData, badges) {
         var badgeContent = buildBadge().addClass('turbo').prop('title', 'Twitch Turbo');
         badges.append(badgeContent).append(' ');
     } else if (badgeData[1]) {
-        var badgeContent = buildBadge().addClass('prime').prop('title', 'Twitch Prime')
-            .css('background-image', 'url(https://static-cdn.jtvnw.net/badges/v1/' + primeurl + '/1)');
+        var badgeContent = buildBadge().addClass('prime').prop('title', 'Twitch Prime').css('background-image', 'url(https://static-cdn.jtvnw.net/badges/v1/' + primeurl + '/1)');
         badges.append(badgeContent).append(' ');
     }
 }
 
-function loadBTTVEmotes(channels) {
-    bttvEmotes = {};
+function loadBTTVEmotes(channels, bttvEmotesDict) {
     var endpointsList = [];
     channels.forEach(function(channel) {endpointsList.push('channels/' + encodeURIComponent(channel))});
     endpointsList.forEach(function(endpoint) {
         $.getJSON('https://api.betterttv.net/2/' + endpoint).done(function(data) {
             data.emotes.forEach(function(emote) {
-                bttvEmotes[emote.code] = {
+                bttvEmotesDict[emote.code] = {
                     restrictions: emote.restrictions,
                     code: emote.code,
                     id: emote.id,
@@ -1094,26 +981,25 @@ function loadBTTVEmotes(channels) {
 };
 
 window.onclick = function(event) {
-    if (!event.target.matches('.TCR-ddButton')) {
-        ddMenuDiv[0].classList.remove('show');
+    if (!event.target.matches('.TCR-ddShowButton')) {
+        $('#TCR-ddShowMenuDiv')[0].classList.remove('show');
     }
     if (!event.target.matches('.TCR-ddEpButton')) {
-        ddEpMenuDiv[0].classList.remove('show');
+        $('#TCR-ddEpMenuDiv')[0].classList.remove('show');
     }
     if (!event.target.matches('#TCR-ddAltButton') && !event.target.matches('.TCR-ddAltMenuItem')) {
-        ddAltMenuDiv[0].classList.remove('show');
+        $('#TCR-ddAltMenuDiv')[0].classList.remove('show');
     }
 }
 
 function loadJSON(callback, path) {   
     var xobj = new XMLHttpRequest();
 	xobj.overrideMimeType("application/json");
-    xobj.open('GET', path, false); // Replace 'my_data' with the path to your file
+    xobj.open('GET', path, false);
     xobj.onreadystatechange = function () {
-          if (xobj.readyState == 4 && xobj.status == "200") {
-            // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+        if (xobj.readyState == 4 && xobj.status == "200") {
             callback(xobj.responseText);
-          }
+        }
     };
     xobj.send(null);  
 }

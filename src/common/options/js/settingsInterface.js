@@ -8,8 +8,8 @@ var SETTINGS_SELECTORS = {
     badges: '#BadgesCheckbox',
     bttvChannelsList: '#bttvChannelsList',
     emoteFilterList: '#emoteFilterList',
-    vlcenabled: '#VLCCheckbox',
-    vlcpass: '#VLCPasswordComboBox',
+    vlcEnabled: '#VLCCheckbox',
+    vlcPass: '#VLCPasswordComboBox',
     nameHighlightList: '#nameHighlightList'
 };
 

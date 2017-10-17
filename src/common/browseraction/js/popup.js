@@ -16,8 +16,8 @@ function init() {
     Promise.all(promises).then(function(data) {    
         var settings = data[0];
  
-        settingsVLCPass = settings.vlcpass;
-        settingsVLCEnabled = settings.vlcenabled;
+        settingsVLCPass = settings.vlcPass;
+        settingsVLCEnabled = settings.vlcEnabled;
         
         if (settingsVLCEnabled) VLCInit();
     });    
@@ -29,7 +29,7 @@ function setOpenChatDialogEvent() {
         if (e.target.value === 'Open Chat Popup') {
             
         } else {
-            extensionSettings.setSettings({vlcenabled: 'false'});
+            extensionSettings.setSettings({vlcEnabled: 'false'});
         }
         
         chrome.windows.create({'url': chrome.extension.getURL('chatPopup.html'), 'width': 356, 'type': 'popup'}, function(window) {
