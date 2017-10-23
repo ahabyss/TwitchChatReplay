@@ -14,9 +14,12 @@ body.ember-application
     height 100%!important    
     overflow-x hidden
 
-.chat-container, .ember-chat-container
+.ember-chat-container
     background #faf9fa
     color #19171c
+    
+.ember-chat-container.darkmode
+    color #d3d3d3
     
 *
     margin 0
@@ -43,6 +46,10 @@ button
     white-space nowrap
     cursor pointer
     font-size 12px
+    
+.button.darkmode
+    color #d3d3d3
+    background #573a8e
     
 .button:hover
     cursor pointer
@@ -89,10 +96,11 @@ input, textarea, select
     width auto!important
     height auto!important
     overflow hidden   
-    
-.chat-messages
     font-size 13.33333px
     line-height 17.33333px
+    
+.ember-chat-container.darkmode .chat-messages
+    background rgb(30,30,30)
     
 .tse-scroll-content
     width auto!important
@@ -178,6 +186,9 @@ li
 .timestamp
     color #6e6779
     margin-right 5px
+    
+.ember-chat-container.darkmode span.timestamp
+    color #898395
     
 .badges
     display inline-block
@@ -281,6 +292,10 @@ img
     padding 0 1rem
     transition background .12s ease-in,color .12s ease-in,box-shadow .12s ease-in
     cursor pointer
+
+#TCR-ddShowMenuDiv.darkmode div
+    background #64479a
+    color inherit
     
 #TCR-ddShowMenuDiv div:hover    
     background #9d7bde
@@ -335,6 +350,10 @@ img
     transition background .12s ease-in,color .12s ease-in,box-shadow .12s ease-in
     cursor pointer
     
+#TCR-ddEpMenuDiv.darkmode div
+    background #64479a
+    color inherit
+    
 #TCR-ddEpMenuDiv div:hover    
     background #9d7bde
     background2 #392e5c
@@ -387,6 +406,10 @@ img
     padding 0 1rem
     transition background .12s ease-in,color .12s ease-in,box-shadow .12s ease-in
     cursor pointer
+
+#TCR-ddAltMenuDiv.darkmode div
+    background #64479a
+    color inherit
     
 .TCR-ddAltMenuItem.selected
     background #66cc66!important
@@ -446,15 +469,15 @@ img
     border transparent solid 6px
     border-top-width 6px
     border-bottom-width 0
-    border-top-color #ffffff
+    border-top-color inherit
     transition all .12s
     margin 0 10px
     transform rotate(270deg)
     
 #TCR-playButton.pause:after
     border-color transparent
-    border-left 3px solid white
-    border-right 3px solid white
+    border-left 3px solid #fff
+    border-right 3px solid #fff
     border-top 0px
     width 4px
     height 10px
@@ -462,6 +485,10 @@ img
     position relative
     vertical-align middle
     transform rotate(0deg)
+    
+#TCR-playButton.pause.darkmode:after
+    border-left 3px solid #d3d3d3
+    border-right 3px solid #d3d3d3
 
 #TCR-playButton.next:after
     width 1px
@@ -470,8 +497,8 @@ img
     border-top-color transparent
     border-bottom-width 6px
     border-right-width 0px
-    border-left-color #ffffff
-    box-shadow: 2px 0px 0px #ffffff
+    border-left-color inherit
+    box-shadow 2px 0px 0px inherit
     transform rotate(0deg)
     vertical-align middle
     position relative
@@ -484,6 +511,9 @@ img
 #TCR-panel.panelToggle
     height 70px!important
 
+#TCR-panel.darkmode
+    background-color #282828
+    
 //.message-line.TCR-Highlight
     //background-color #e8dcf4
     //box-shadow 4px 0px 0px #9d7bde inset
@@ -514,33 +544,18 @@ img
     font-size xx-large
     font-family cursive
     
-#TCR-timeInput
-    width 60px
-    box-shadow: inset 0 0 0 1px #dad8de, 0 0 0 transparent
-    color #433f4a
-    position relative
-    padding 1px 1px
-    transition box-shadow .12s ease-in
-    border none
-    font-family inherit
-    font-size 1.2rem
-    line-height 2rem
-    text-align center
-    margin-right 10px
-    float right
-    right 42px
-    outline 0
-    margin-bottom 3px
+#TCR-darkButton
+    width 32px
+    padding 0
+    text-indent -0.2em
+    font-size larger
     
-#TCR-timeInput:focus
-    box-shadow inset 0 0 0 1px #7d5bbe, 0 0 6px -2px #7d5bbe
-    border 1px solid #aaa
-    color #000000
-    padding 0px
+#TCR-delayDiv
+    display inline
     
 #TCR-delayInput
     width 60px
-    box-shadow: inset 0 0 0 1px #dad8de, 0 0 0 transparent
+    box-shadow inset 0 0 0 1px #dad8de, 0 0 0 transparent
     color #433f4a
     position relative
     padding 1px 1px
@@ -555,6 +570,12 @@ img
     right 42px
     outline 0
     margin-bottom 3px
+    
+#TCR-delayInput.darkmode
+    background #222222
+    box-shadow inset 0 0 0 1px #000000, 0 0 0 transparent
+    caret-color #d3d3d3
+    color #d3d3d3
 
 #TCR-delayInput:focus
     box-shadow inset 0 0 0 1px #7d5bbe, 0 0 6px -2px #7d5bbe
@@ -562,16 +583,19 @@ img
     color #000000
     padding 0px
 
+#TCR-delayInput.darkmode:focus
+    color #bbbbbb
+    
 #TCR-inputsDiv
-    float right
+    //float right
+    margin 0px 10px 10px 10px
     
 #TCR-delayLabel
     padding 1px 1px
     position relative
     float right
     right -60px
-    color #555555
-
+    //color #555555
    
 #TCR-seekBarDivWrap
     display flex
@@ -585,13 +609,19 @@ img
     position relative
     background #777777
     text-align center
+    
+#TCR-seekBarDiv.darkmode
+    background #555555
 
-#TCR-seekBarDivBarPre
+.TCR-seekBarDivBarPre
     height 15px
     pointer-events none
     transition all 0.05s ease
     background #545454
     position absolute
+    
+.TCR-seekBarDivBarPre.darkmode
+    background #404040
     
 #TCR-seekBarDivBar
     height 15px
@@ -599,6 +629,9 @@ img
     transition all 0.05s ease
     background #7d5bbe
     position relative
+    
+#TCR-seekBarDivBar.darkmode
+    background #593f8d
 
 #TCR-seekBarDivTime
     color #fff
@@ -608,6 +641,9 @@ img
     font-size 100%
     pointer-events none
     user-select none
+    
+#TCR-seekBarDivTime.darkmode
+    color #d3d3d3
     
 .scroll.chat-messages.panelToggle
     bottom 70px!important
@@ -633,7 +669,7 @@ img
     border transparent solid 6px
     border-top-width 6px
     border-bottom-width 0
-    border-top-color #ffffff
+    border-top-color inherit
     transition all .12s
     margin 0 10px
     

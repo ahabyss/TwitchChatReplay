@@ -12,10 +12,6 @@ var staydownChat = null;
 var settingsArray = null;
 var VLCInfo = [];
 
-var suburl = '40fbcba3-7765-4f14-a625-8577d92e830d';
-var primeurl = 'a1dd5073-19c3-4911-8cb4-c464a7bc1510';
-var modurl = '3267646d-33f0-4b17-b3df-f923a41db1d0';
-
 var autolinker = new Autolinker({urls: true, email: true, twitter: false, phone: false, stripPrefix: false});
 
 var playedTime = 0; //playtime of current episode
@@ -23,6 +19,14 @@ var lastPlayUpdate = null;
 var delayTime = 0;
 var playing = false;
 
+var badgeArray = [['bd444ec6-8f34-4bf9-91f4-af1e3428d80f', 'Turbo'], ['a1dd5073-19c3-4911-8cb4-c464a7bc1510', 'Twitch Prime'], ['40fbcba3-7765-4f14-a625-8577d92e830d', 'Subscriber'], ['3267646d-33f0-4b17-b3df-f923a41db1d0', 'Moderator'],
+    [{'1':'73b5c3fb-24f9-4a82-a852-2f475b59411c', '100':'09d93036-e7ce-431c-9a9e-7044297133f2', '1000':'0d85a29e-79ad-4c63-a285-3acd2c66f2ba', '5000':'57cd97fc-3e9e-4c6d-9d41-60147137234e',
+    '10000':'68af213b-a771-4124-b6e3-9bb6d98aa732', '100000':'96f0540f-aa63-49e1-a8b3-259ece3bd098', '1000000':'494d1c8e-c3b2-4d88-8528-baff57c9bd3f'}, 'cheer '], ['d97c37bd-a6f5-4c38-8f57-4e4bef88af34', 'Twitch Staff'],
+    ['9384c43e-4ce7-4e94-b2a1-b93656896eba', 'Global Moderator'], ['d12a2e27-16f6-41d0-ab77-b780518f00a3', 'Verified'], ['9ef7e029-4cdf-4d4d-a0d5-e2b3fb2583fe', 'Twitch Admin'], ['5527c58c-fb7d-422d-b71b-f309dcb85cc1', 'Broadcaster']];
+
+var regexEpi1 = /(?:ch|ep|epi|episode|chapter)[\s\-#:]*?(\d{1,2})[\s\-#:]+/i;
+var regexEpi2 = /[\s\-#:]+?(\d{1,2})[\s\-#:]+/i;
+    
 function init() {
     var promises = [];
     var settingsPromise = extensionSettings.getSettings();
@@ -164,13 +168,41 @@ function VLCUpdater() {
     setTimeout(VLCUpdater, 500);
 }
 
+function VLCFindShow() {
+    
+    var tempShow = null;
+    showJSON.some(function(show, ind) {
+        tempShow = ind;
+        return (new RegExp(show[4], 'i')).test(VLCInfo.file);
+    }); 
+           
+    epRes = regexEpi1.exec(VLCInfo.file);
+    if (epRes === null) {
+        console.log('reverting to secondary ep regex');
+        epRes = regexEpi2.exec(VLCInfo.file);
+        if (epRes === null) {
+            epRes = 1;
+            console.log('This should never happen, try to rename your VLC files cleanly (i.e. <SHOW NAME> Season <X> Episode <X> - <TITLE>)');
+        }
+    } else {
+        epRes = epRes[1];
+    }
+    
+    setCurrentShow(tempShow);
+    setCurrentEp(Number(epRes));
+    resetPlayback(false);
+    
+    VLCSetupShow();
+}
 
 function VLCSetupShow() {
     playedTime = VLCInfo.time * 1000;
     
-    if (VLCInfo.time < showJSON[currentShow][3][currentEp - 1][0]) { //if VLC is pre-chat then move to chat start
-        playedTime = (showJSON[currentShow][3][currentEp - 1][0]) * 1000;
-        VLCCommand('seek&val=' + Math.round(showJSON[currentShow][3][currentEp - 1][0]), function() {});
+    if (showJSON[currentShow][3][currentEp - 1][0][1] == 1) { //its a skipped segment
+        if (VLCInfo.time < showJSON[currentShow][3][currentEp - 1][0][0]) { //if VLC is pre-chat then move to chat start
+            playedTime = (showJSON[currentShow][3][currentEp - 1][0][0]) * 1000;
+            VLCCommand('seek&val=' + Math.round(showJSON[currentShow][3][currentEp - 1][0][0]), function() {});
+        }
     }
     
     $('#TCR-ddShowButton')[0].classList.add('inactive');
@@ -181,44 +213,21 @@ function VLCSetupShow() {
     updateTimeDisplay();
 }
 
-function VLCFindShow() {
-    var regexRWBYShow = /([Rr]+[Ww]+[Bb]+[Yy])/;
-    var regexRWBYSeason = /([Vv][Oo][Ll]|[Vv][Oo][Ll][Uu][Mm][Ee]|[Ss][Ee][Aa][Ss][Oo][Nn])(\s*)([-#:]*)(\s*)(\d{1,2})/;
-    var regexRWBYEpi = /([Cc][Hh][Aa][Pp][Tt][Ee][Rr]|[Ee][Pp][Ii]|[Ee][Pp][Ii][Ss][Oo][Dd][Ee])(\s*)([-#:]*)(\s*)(\d{1,2})/;
+function getCurrentEpLength() {
+    return (showJSON[currentShow][3][currentEp - 1].map(function(value, index) {return value[0];})).reduce((a, b) => a + b, 0);
+}
 
-    var tempShow;
-    var tempEp;
-    var tempSeason;
+function divBarPres() {
+    $('.TCR-seekBarDivBarPre').remove();
     
-    if (regexRWBYShow.test(VLCInfo.file)) { //If we're playing RWBY
-        seasonRes = regexRWBYSeason.exec(VLCInfo.file);
-        if (seasonRes === null) { //assume first season
-            tempSeason = 1;
-        } else {
-            tempSeason = Number(seasonRes[5]);
-        }
-        
-        epiRes = regexRWBYEpi.exec(VLCInfo.file);       
-        if (epiRes === null) {
-            tempEp = 1;
-            console.log('This should never happen, try to rename your files cleanly (i.e. RWBY Volume 1 Chapter 1 - blah)');
-        } else {
-            tempEp = Number(epiRes[5]);
-        }
-        
-        var ind;
-        if (showJSON.some(function(item, i) {ind = i; return item[0] === 'RWBY Vol ' + tempSeason})) {
-            tempShow = ind;
-        } else {
-            console.log("This should never happen, couldn't find expected volume in data folder");
+    for (var i = 0; i < showJSON[currentShow][3][currentEp - 1].length; i++) {
+        if (showJSON[currentShow][3][currentEp - 1][i][1] == 1) {
+            var seekBarDivBarPre = $('<div>').attr('class', 'TCR-seekBarDivBarPre');
+            $('#TCR-seekBarDiv').prepend(seekBarDivBarPre);
+            seekBarDivBarPre[0].style['margin-left'] = 100 * ((showJSON[currentShow][3][currentEp - 1].slice(0, i)).map(function(value, index) {return value[0];})).reduce((a, b) => a + b, 0) / getCurrentEpLength() + '%';
+            seekBarDivBarPre[0].style.width = 100 * (showJSON[currentShow][3][currentEp - 1][i][0]) / getCurrentEpLength() + '%';
         }
     }
-
-    setCurrentShow(tempShow);
-    setCurrentEp(tempEp);
-    resetPlayback(false);
-    
-    VLCSetupShow();
 }
 
 function initComplete() {
@@ -241,12 +250,12 @@ function initComplete() {
     var ddShowDiv = $('<div>').attr('id', 'TCR-ddShowDiv');
     var ddShowButton = $('<button>').addClass('TCR-ddShowButton button').text('Anime Title').attr('id', 'TCR-ddShowButton');
     var ddShowMenuDiv = $('<div>').attr('id', 'TCR-ddShowMenuDiv');
-    var ddShowLockDiv = $('<div>').addClass('TCR-lock unlocked').attr('id', 'TCR-ddShowLockDiv').html('🔒');
+    var ddShowLockDiv = $('<div>').addClass('TCR-lock unlocked').attr('id', 'TCR-ddShowLockDiv').html('🔒&#xfe0e;');
     
     var ddEpDiv = $('<div>').attr('id', 'TCR-ddEpDiv');
     var ddEpButton = $('<button>').addClass('TCR-ddEpButton button inactive').text('Ep X').attr('id', 'TCR-ddEpButton');
     var ddEpMenuDiv = $('<div>').attr('id', 'TCR-ddEpMenuDiv');
-    var ddEpLockDiv = $('<div>').addClass('TCR-lock unlocked').attr('id', 'TCR-ddEpLockDiv').html('🔒');
+    var ddEpLockDiv = $('<div>').addClass('TCR-lock unlocked').attr('id', 'TCR-ddEpLockDiv').html('🔒&#xfe0e;');
     
     var ddAltDiv = $('<div>').addClass('inactive').attr('id', 'TCR-ddAltDiv')
     var ddAltButton = $('<button>').addClass('TCR-ddAltButton button').text('Alts').attr('id', 'TCR-ddAltButton');
@@ -257,13 +266,14 @@ function initComplete() {
     
     var seekBarDivWrap = $('<div>').addClass('inactive').attr('id', 'TCR-seekBarDivWrap');
     var seekBarDiv = $('<div>').attr('id', 'TCR-seekBarDiv');
-    var seekBarDivBarPre = $('<div>').attr('id', 'TCR-seekBarDivBarPre');
     var seekBarDivBar = $('<div>').attr('id', 'TCR-seekBarDivBar');
     var seekBarDivTime = $('<div>').attr('id', 'TCR-seekBarDivTime').text('');
     
+    var darkButton = $('<button>').addClass('button TCR-darkButton').attr('id', 'TCR-darkButton').html('🌙&#xfe0e;');
+    
     var inputsDiv = $('<div>').attr('id', 'TCR-inputsDiv');
     
-    var delayDiv = $('<div>');  
+    var delayDiv = $('<div>').attr('id', 'TCR-delayDiv');  
     var delayInput = $('<input>').addClass('inactive').attr('id', 'TCR-delayInput').attr('disabled', '').attr('value', 'delay');
     var delayLabel = $('<span>').addClass('inactive').attr('id', 'TCR-delayLabel').text('0 sec');
     
@@ -272,8 +282,8 @@ function initComplete() {
     contPanel.append(ddEpDiv.append(ddEpButton, ddEpMenuDiv, ddEpLockDiv));
     contPanel.append(playButton);
     contPanel.append(ddAltDiv.append(ddAltButton, ddAltMenuDiv));
-    contPanel.append(seekBarDivWrap.append(seekBarDiv.append(seekBarDivBarPre, seekBarDivBar, seekBarDivTime)));
-    contPanel.append(inputsDiv.append(delayDiv.append(delayInput, delayLabel)));
+    contPanel.append(seekBarDivWrap.append(seekBarDiv.append(seekBarDivBar, seekBarDivTime)));
+    contPanel.append(inputsDiv.append(darkButton, delayDiv.append(delayInput, delayLabel)));
     
     containerTab.append(emberView.append(emberChatContainer.append(emberChat.append(emberView2.append(emberChatRoom.append(emberView3.append(scrollChat.append(scrollContent.append(tseContent.append(chatDisplay.append(chatLines)))), contPanel)))))));
         
@@ -282,6 +292,7 @@ function initComplete() {
     ddAltButton[0].addEventListener('click', function() {ddAltMenuClick(this);});
     panelButton[0].addEventListener('click', function() {generalButtonClick(this);});
     playButton[0].addEventListener('click', function() {generalButtonClick(this);});
+    darkButton[0].addEventListener('click', function() {generalButtonClick(this);});
     seekBarDiv[0].addEventListener('click', function(e) {seekBarClick(e, this);});
     
     delayInput.on('keyup', function (e) {
@@ -387,6 +398,7 @@ function setCurrentShow(argShow) {
     
     $('#TCR-seekBarDivWrap')[0].classList.remove('inactive');
     
+    $('#TCR-ddAltDiv')[0].classList.add('inactive');
     if (showJSON[currentShow][2].length > 1)
         $('#TCR-ddAltDiv')[0].classList.remove('inactive');
     
@@ -410,8 +422,8 @@ function setCurrentEp(argEp) {
     currentEp = argEp;
     
     $('#TCR-ddEpButton')[0].innerHTML = 'Ep ' + currentEp; 
-    $('#TCR-seekBarDivBarPre')[0].style.width = 100 * (showJSON[currentShow][3][currentEp - 1][0]) / (showJSON[currentShow][3][currentEp - 1][1]) + '%';
     
+    divBarPres();
     loadEpisodeJSONs();
 }
 
@@ -457,17 +469,19 @@ function ddAltMenuClick(element) { //Handle clicks on the alt broadcasts dropdow
 }
 
 function seekBarClick(e, element) {
-    var secs = Math.floor((e.offsetX / $('#TCR-seekBarDiv')[0].clientWidth) * Math.floor(showJSON[currentShow][3][currentEp - 1][1]));
-    
-    if (settingsArray.vlcEnabled) {
-        VLCCommand('seek&val=' + secs, function() {});
-        VLCInfo.time = secs;
+    if (!$('#TCR-seekBarDivWrap')[0].classList.contains('inactive')) {
+        var secs = Math.floor((e.offsetX / $('#TCR-seekBarDiv')[0].clientWidth) * Math.floor(getCurrentEpLength()));
+        
+        if (settingsArray.vlcEnabled) {
+            VLCCommand('seek&val=' + secs, function() {});
+            VLCInfo.time = secs;
+        }
+        
+        loadEpisodeJSONs();
+        
+        playedTime = secs * 1000;
+        updateTimeDisplay();
     }
-    
-    loadEpisodeJSONs();
-    
-    playedTime = secs * 1000;
-    updateTimeDisplay();
 }
 
 function togglePanel() {
@@ -569,6 +583,21 @@ function generalButtonClick(element) {
             togglePanel();
             break;
         }
+        case 'TCR-darkButton': {
+            $('.ember-chat-container')[0].classList.toggle('darkmode');
+            $('.button').each(function () {this.classList.toggle('darkmode')});
+            $('#TCR-panel')[0].classList.toggle('darkmode');
+            $('#TCR-delayInput')[0].classList.toggle('darkmode');
+            $('#TCR-seekBarDiv')[0].classList.toggle('darkmode');
+            $('.TCR-seekBarDivBarPre').each(function () {this.classList.toggle('darkmode');});
+            $('#TCR-seekBarDivBar')[0].classList.toggle('darkmode');
+            $('#TCR-seekBarDivTime')[0].classList.toggle('darkmode');
+            $('#TCR-ddShowMenuDiv')[0].classList.toggle('darkmode');
+            $('#TCR-ddEpMenuDiv')[0].classList.toggle('darkmode');
+            $('#TCR-ddAltMenuDiv')[0].classList.toggle('darkmode');
+            
+            break;
+        }
     }
 }
 
@@ -579,8 +608,8 @@ function formatmmss(timeSec) {
 
 function updateTimeDisplay() {
     if (currentShow != null) {
-        $('#TCR-seekBarDivBar')[0].style.width = 100 * (Math.floor((playedTime)/1000)) / (showJSON[currentShow][3][currentEp - 1][1]) + '%';
-        $('#TCR-seekBarDivTime')[0].innerHTML = formatmmss(Math.floor((playedTime)/1000)) + ' / ' + formatmmss(Math.floor(showJSON[currentShow][3][currentEp - 1][1]));
+        $('#TCR-seekBarDivBar')[0].style.width = 100 * (Math.floor((playedTime)/1000)) / (getCurrentEpLength()) + '%';
+        $('#TCR-seekBarDivTime')[0].innerHTML = formatmmss(Math.floor((playedTime)/1000)) + ' / ' + formatmmss(Math.floor(getCurrentEpLength()));
     }
 }
 
@@ -596,14 +625,21 @@ function startPlaying() {
             
                 if (epJSON[alt].index.length > 0) {
                     //"the time we have currently played" - "when this message occurs in the total session" - "the extra time to delay" - "time to offset the message"
-                    var offsetTime = showJSON[currentShow][3][currentEp - 1][0] * 1000; //episode intro
-                    var msgRelativeTime = playedTime - epJSON[alt].index[0] - delayTime - offsetTime;
+                    
+                    var offsetTime = 0; //Built into the files with new system now, will remove later
+                    /*if (showJSON[currentShow][3][currentEp - 1][0][1] == 1) { //Hacky solution that doesn't support mid episode breaks (which there aren't any yet, but its not a general solution)
+                        console.log('yes');
+                        offsetTime = showJSON[currentShow][3][currentEp - 1][0][0] * 1000; //episode intro
+                        
+                    }*/
+                    
+                    var msgRelativeTime = playedTime - epJSON[alt].index[0]*1000 - delayTime - offsetTime;
                     
                     if (msgRelativeTime < 0) {
                         return true; //this message is in the future so do nothing
                     } else {
                         if (msgRelativeTime < 3000) { //post the message if its less than 3 seconds in the past
-                            $('#TCR-chatLines').append(formatChatMessageTCR(epJSON[alt].data[0], epJSON[alt].index[0] + offsetTime));
+                            $('#TCR-chatLines').append(formatChatMessageTCR(epJSON[alt].data[0], epJSON[alt].index[0]*1000 + offsetTime));
                         }
                         epJSON[alt].index.shift(); //remove the message regardless
                         epJSON[alt].data.shift();
@@ -616,7 +652,11 @@ function startPlaying() {
             }
         }
         
-        if (playedTime - delayTime - showJSON[currentShow][3][currentEp - 1][1] * 1000 > 200) { //if we are 0.2 sec past the ep cutoff point, then load next ep stuff
+        var preEndSkip = 0;
+        if (showJSON[currentShow][3][currentEp - 1][showJSON[currentShow][3][currentEp - 1].length - 1][1] == 1) //If the last section is a skip then don't count it in the time
+            preEndSkip = showJSON[currentShow][3][currentEp - 1][showJSON[currentShow][3][currentEp - 1].length - 1][0];
+            
+        if (playedTime - delayTime - (getCurrentEpLength() - preEndSkip) * 1000 > 200) { //if we are 0.2 sec past the ep cutoff point, then load next ep stuff
             
             playPause(false);
             
@@ -702,10 +742,7 @@ function formatChatMessageTCR(messageData, time) {
         var rgb = hexToRgb(color.substring(1));
         line.css({'background-color': 'rgba(' + rgb[0] + ', ' + rgb[1] + ', ' + rgb[2] + ', 0.15)', 'box-shadow': '4px 0px 0px ' + color + ' inset'});
     } else if (name === 'ohbot') {
-        argBadges[0] = true;
-        argBadges[1] = false;
-        argBadges[2] = true;
-        argBadges.push(true);
+        argBadges = [[3, 2, 1],0]
     } else if (name === 'twitchnotify') {
         line.addClass('admin');
         timespan = badges = from = colon = null;
@@ -941,25 +978,19 @@ function buildBadge() {
 };
 
 function applyMessageBadges(badgeData, badges) {
-    if (badges === null) return badges;
     
-    if (badgeData.length > 3) {
-        var badgeContent = buildBadge().addClass('mod').prop('title', 'Moderator').css('background-image', 'url(https://static-cdn.jtvnw.net/badges/v1/' + modurl + '/1)');
-        badges.append(badgeContent).append(' ');
-    }
+    if (badges === null || badgeData[0].length === 0) return badges;
     
-    if (badgeData[2]) {
-        var badgeContent = buildBadge().addClass('subscriber').prop('title', 'Subscriber').css('background-image', 'url(https://static-cdn.jtvnw.net/badges/v1/' + suburl + '/1)');
+    badgeData[0].forEach(function(item) { //badgeIds = {'turbo' : 0, 'premium' : 1, 'subscriber' : 2, 'moderator' : 3, 'bits' : 4, 'staff' : 5, 'global_mod' : 6, 'partner' : 7, 'admin' : 8, 'broadcaster' : 9}
+        
+        if (item === 4) {
+            var badgeContent = buildBadge().addClass('turbo').prop('title', badgeArray[item][1] + badgeData[1]).css('background-image', 'url(https://static-cdn.jtvnw.net/badges/v1/' + badgeArray[item][0][badgeData[1]] + '/1)');
+        } else {
+            var badgeContent = buildBadge().addClass('turbo').prop('title', badgeArray[item][1]).css('background-image', 'url(https://static-cdn.jtvnw.net/badges/v1/' + badgeArray[item][0] + '/1)');
+        }
+
         badges.append(badgeContent).append(' ');
-    }
-    
-    if (badgeData[0]) {
-        var badgeContent = buildBadge().addClass('turbo').prop('title', 'Twitch Turbo');
-        badges.append(badgeContent).append(' ');
-    } else if (badgeData[1]) {
-        var badgeContent = buildBadge().addClass('prime').prop('title', 'Twitch Prime').css('background-image', 'url(https://static-cdn.jtvnw.net/badges/v1/' + primeurl + '/1)');
-        badges.append(badgeContent).append(' ');
-    }
+    });
 }
 
 function loadBTTVEmotes(channels, bttvEmotesDict) {

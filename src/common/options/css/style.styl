@@ -7,6 +7,8 @@
 
 .panel
     display none
+    padding-left 10px
+    padding-right 10px
 
 .optionsBody
     margin 0
@@ -14,40 +16,41 @@
 .subpanel
     display none
     
-input[type=button].openChatDialogButton
+#abTitle, #abAuthor
+    width 100%
+    text-align center
+    text-decoration none
+    
+#abTitle
+    font-size 30px
+    
+#tagline
+    text-align center
+    display block
+    margin-bottom 2em
+    
+input[type=button].saveSettingsButton:focus
+    box-shadow 0 0 6px 0 #7d5bbe
+    outline none
+    
+input[type=button].saveSettingsButton:active
+    background #6441a4
+    color white
+    box-shadow 0 0 6px 0 #7d5bbe
+    
+input[type=button].saveSettingsButton
     margin auto
     margin-top 0.5em
     padding 0.5em 1.0em
 
     display block
     
-    font-size 1.25em
-    color $backgroundColor
-    background $navbarBackgroundColor
-
-    outline none
-    border none
-    border-bottom 3px solid $navbarButtonActiveColor
-    border-radius 4px
-    cursor pointer
-
-    transition: 0.25s all
-
-input[type=button].saveSettingsButton
-    margin auto
-    margin-top 1.5em
-    padding 0.5em 1.0em
-
-    display block
-    
     font-size 1.75em
     color $backgroundColor
-    background $navbarBackgroundColor
+    background #9293aa
 
     outline none
     border none
-    border-bottom 3px solid $navbarButtonActiveColor
-    border-radius 4px
     cursor pointer
 
     transition: 0.25s all
@@ -64,9 +67,6 @@ input[type=button].saveSettingsButton:disabled
     cursor default
 
 input[type=button].saveSettingsButton:enabled:hover, input[type=button].saveSettingsButton:enabled:focus
-    padding-left 1.5em
-    padding-right 1.5em
-
     border-color #000000
     background $navbarButtonActiveColor
 
@@ -86,8 +86,8 @@ input[type=button].saveSettingsButton:enabled:hover, input[type=button].saveSett
 
     font-size 1.75em
     color $navbarButtonTextColor
-    background-color rgba(0, 0, 0, 0)
-    font-weight bold
+    background-color rgb(162, 162, 162)
+    font-weight 500
 
     border none
     border-radius 0

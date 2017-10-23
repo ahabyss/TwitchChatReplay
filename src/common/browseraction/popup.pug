@@ -2,7 +2,9 @@ doctype html
 html(lang='en')
     head
         meta(content='text/html; charset=UTF-8', http-equiv='content-type')
-
+        link(href='https://fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic|Source+Sans+Pro:400,700,200,300|Josefin+Sans:400,600,700,300' rel='stylesheet' type='text/css')
+        link(href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet")
+        
         title Twitch Chat Replay
 
         link(rel='stylesheet', type='text/css', href='/browseraction/css/style.css')
@@ -12,8 +14,14 @@ html(lang='en')
             h1 Twitch Chat Replay
         
         #content
-            input#openChatButton.openChatDialogButton(type='button', value='Open Chat Popup')
-            h3#vlcinfo ~
+            #openDiv
+                a(href='https://www.twitchchatreplay.com',target="_blank")
+                    img#TCRIMG(src='/assets/images/TCRIcon128.png')
+                #buttonDiv
+                    input#openChatButton.openChatDialogButton(type='button', value='Open Chat')
+                    #TCRLock.unlocked 🔒
+            #infoDiv 
+                h3#vlcinfo ~
         
         #footer
             span#version v0.9.5 beta

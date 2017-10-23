@@ -9,63 +9,129 @@ $outlineColor = #433265
     margin 0
     box-sizing border-box
 
-    font-family 'Segoe UI', Tahoma, sans-serif
+    font-family "PT Sans", Helvetica, Arial, sans-serif
     outline-color $outlineColor
 
 body
-    display flex
-    flex-direction column
-    justify-content center
-    align-items center
+    //display flex
+    //flex-direction column
+    //justify-content center
+    //align-items center
 
+    width 200px
+    
     font-size 75%
 
     background-color $backgroundColor
-
+   
 h1
     margin 0.5rem 1rem
-
-    font-size 1.75em
+    font-weight 500
+    font-size 1.73em
+    text-align center
     white-space nowrap
 
 h3
     padding 1em
     text-align center
-
+   
 input[type=button]
-    padding 0.25em
-    margin 0.25rem 3rem
-    outline 0
+    //padding 0.25em
+    //margin 0.25rem 3rem
+    //outline 0
 
-    background-color $backgroundColor
-    background-size contain
-    background-position center center
-    background-repeat no-repeat
-    border 1px solid $buttonBorderColor
-    border-radius 2px
+    //background-color $backgroundColor
+    //background-size contain
+    //background-position center center
+    //background-repeat no-repeat
+    //border 1px solid $buttonBorderColor
+    //border-radius 2px
 
     cursor pointer
 
 #openChatButton
-    transition box-shadow .12s ease-in, background .12s ease-in
-    box-shadow inset 0 0 0 1px #d8c0c0, 0 0 0 transparent
+
+    width: 100px
+    height: 30px
+    font-size: 14px;
+
+    //transition box-shadow .12s ease-in, background .12s ease-in
+    //box-shadow inset 0 0 0 1px #d8c0c0, 0 0 0 transparent
     
-#openChatButton:hover
-    box-shadow inset 0 0 0 1px #be5b5b, 0 0 6px -2px #be5b5b
-    background #ead8d8
+    font-family inherit
+    border none
+    background none
+    color inherit
+    font-size 100%
+    
+    background #6441a4
+    color white
+    display inline-block
+    position relative
+    margin auto
+    padding 0 1rem
+    transition background .12s ease-in,color .12s ease-in,box-shadow .12s ease-in
+    font-weight 400
+    white-space nowrap
+    cursor pointer
+    font-size 13px
+    
+//#openChatButton:hover
+    //box-shadow inset 0 0 0 1px #be5b5b, 0 0 6px -2px #be5b5b
+    //background #ead8d8
+
+#openChatButton:hover, #openChatButton:focus
+    background #7d5bbc
+    color white
+    text-decoration none
+    
+#openChatButton:focus
+    box-shadow 0 0 6px 0 #7d5bbe
+    outline none
+    
+#openChatButton:active
+    background #6441a4
+    color white
+    box-shadow 0 0 6px 0 #7d5bbe
+    
+#vlcInfo
+    height 50px
+    align-items center
+    display grid
+    padding 0
+    
+#openDiv
+    display inline-flex
+    
+#infoDiv
+    margin 5px 10px 10px
+    height 50px
+    border #c1c1c1 solid 1px
+    background-color: #ececec
+    
+#buttonDiv
+    width 116px
+    height 64px
+    display inline-flex
+    margin-right 10px
+
+#TCRIMG
+    width 64px
+    height 64px
+    margin-left 10px
     
 #content
     width 100%
 
-    display flex
-    flex-direction column
-    align-items stretch
+    //display flex
+    //flex-direction column
+    //align-items stretch
 
-#content > *
-    display flex
-    flex-direction column
-    justify-content space-around
-    align-items center
+//#content > *
+    //display flex
+    //flex-direction column
+    //justify-content space-around
+    //align-items center
 
 #filterInfo
     margin 0.5em 0.25em
@@ -73,6 +139,25 @@ input[type=button]
     white-space nowrap
     font-size 1.25em
 
+#TCRLock
+    position absolute
+    text-align center
+    width 100px
+    height 30px
+    margin 17px 8px
+    display grid
+    align-items center
+    font-size 19px
+    box-shadow 0px 5px gray inset, 0px -5px gray inset
+    opacity 1
+    
+#TCRLock.unlocked
+    opacity 0
+    z-index -10
+
+#openChatButton.disabled
+    opacity 0.3
+    
 #footer
     margin-top 0.5em
     padding 0.25em
@@ -86,10 +171,11 @@ input[type=button]
 
 #version
     font-weight lighter
+    margin-bottom 3px
+    margin-left 8px
     
 #openSettingsButton
-    margin 0
-    margin-left auto
+    margin 5px 8px 3px auto
     padding 0
     width 1.8em
     height 1.8em
@@ -98,3 +184,4 @@ input[type=button]
     opacity 0.75
     background-color rgba(0, 0, 0, 0)
     background-image url('/assets/images/settings.png')
+    background-size contain
