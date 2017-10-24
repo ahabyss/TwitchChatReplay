@@ -1,7 +1,7 @@
 {
     "name": "TwitchChatReplay",
     "version": "0.9.6",
-    "description": "Replay Twitch Logs",
+    "description": "Replays Twitch chat for the anime marathons.",
     "main": "build.js",
     "scripts": {
         "build": "node build",

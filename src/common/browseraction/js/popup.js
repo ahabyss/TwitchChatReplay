@@ -38,9 +38,9 @@ function setButtonStatus(type) { //0 good, 1 bad, 2 loading
         $('#openChatButton')[0].classList.remove('disabled');
         
         if (settingsVLCEnabled) {
-            $('#vlcinfo')[0].innerHTML = 'VLC Connected.';
+            $('#vlcInfo')[0].innerHTML = 'VLC Connected.';
         } else {
-            $('#vlcinfo')[0].innerHTML = 'VLC Disabled.';
+            $('#vlcInfo')[0].innerHTML = 'VLC Disabled.';
         }
         
     } else if (type === 1) {
@@ -48,13 +48,13 @@ function setButtonStatus(type) { //0 good, 1 bad, 2 loading
         $('#TCRLock')[0].classList.add('unlocked');
         $('#openChatButton')[0].classList.remove('disabled');
         
-        $('#vlcinfo').innerHTML = 'Continuing will disable the VLC Option.';
+        $('#vlcInfo')[0].innerHTML = 'Error. Continuing will disable the VLC option.';
     } else if (type === 2) {
         loadStatus = 2;
         $('#TCRLock')[0].classList.remove('unlocked');
         $('#openChatButton')[0].classList.add('disabled');
         
-        $('#vlcinfo')[0].innerHTML = 'VLC Enabled<br>loading VLC...';
+        $('#vlcInfo')[0].innerHTML = 'VLC Enabled<br>loading VLC...';
     }
 }
 

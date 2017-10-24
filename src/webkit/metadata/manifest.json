@@ -3,7 +3,7 @@
 
   "name": "Twitch Chat Replay",
   "short_name": "TCR",
-  "description": "Replays Twitch.tv chat logs (anime marathon)",
+  "description": "Replays Twitch chat for the anime marathons.",
   "version": "0.9.6",
   "version_name": "0.9.6 Beta",
 

@@ -24,8 +24,8 @@ var badgeArray = [['bd444ec6-8f34-4bf9-91f4-af1e3428d80f', 'Turbo'], ['a1dd5073-
     '10000':'68af213b-a771-4124-b6e3-9bb6d98aa732', '100000':'96f0540f-aa63-49e1-a8b3-259ece3bd098', '1000000':'494d1c8e-c3b2-4d88-8528-baff57c9bd3f'}, 'cheer '], ['d97c37bd-a6f5-4c38-8f57-4e4bef88af34', 'Twitch Staff'],
     ['9384c43e-4ce7-4e94-b2a1-b93656896eba', 'Global Moderator'], ['d12a2e27-16f6-41d0-ab77-b780518f00a3', 'Verified'], ['9ef7e029-4cdf-4d4d-a0d5-e2b3fb2583fe', 'Twitch Admin'], ['5527c58c-fb7d-422d-b71b-f309dcb85cc1', 'Broadcaster']];
 
-var regexEpi1 = /(?:ch|ep|epi|episode|chapter)[\s\-#:]*?(\d{1,2})[\s\-#:]+/i;
-var regexEpi2 = /[\s\-#:]+?(\d{1,2})[\s\-#:]+/i;
+var regexEpi1 = /(?:ch|ep|epi|episode|chapter)[\s\-#:]*?(\d{1,2})([\.\s\-#:]+|$)/i;
+var regexEpi2 = /[\s\-#:]+?(\d{1,2})([\.\s\-#:]+|$)/i;
     
 function init() {
     var promises = [];
@@ -152,7 +152,7 @@ function VLCUpdater() {
                 /*if (false && (Math.abs(tempTime - VLCInfo.time) > 2)) { //Time is out of sync (because user seeked in VLC or VLC is playing)
                     //if Math.abs((Math.floor((playedTime + Date.now() - timeStart)/1000)) - tempTime)
                 
-                    console.log('loading btw haHAA');
+                    console.log('loading btw');
                 
                     loadEpisodeJSONs(); //needed in case user seeked backwards
                 
@@ -170,29 +170,47 @@ function VLCUpdater() {
 
 function VLCFindShow() {
     
-    var tempShow = null;
-    showJSON.some(function(show, ind) {
-        tempShow = ind;
-        return (new RegExp(show[4], 'i')).test(VLCInfo.file);
+    var showRes = null;
+    var showFound = showJSON.some(function(show, ind) {
+        showRes = ind;
+        return (new RegExp(show[4], 'im')).test(VLCInfo.file);
     }); 
-           
-    epRes = regexEpi1.exec(VLCInfo.file);
-    if (epRes === null) {
-        console.log('reverting to secondary ep regex');
-        epRes = regexEpi2.exec(VLCInfo.file);
-        if (epRes === null) {
-            epRes = 1;
-            console.log('This should never happen, try to rename your VLC files cleanly (i.e. <SHOW NAME> Season <X> Episode <X> - <TITLE>)');
-        }
+    
+    if (showFound === false) {
+        showRes = 0;
+        epRes = 1;
+        console.log('Error could not find show title, try to rename your VLC files cleanly (i.e. <SHOW NAME> Season <X> Episode <X> - <TITLE>)');
     } else {
-        epRes = epRes[1];
+        var epRes = regexEpi1.exec(VLCInfo.file);
+        if (epRes === null) {
+            console.log('reverting to secondary ep regex');
+            console.log(regexEpi2);
+            console.log(VLCInfo.file);
+            epRes = regexEpi2.exec(VLCInfo.file);
+            console.log(epRes);
+            if (epRes === null) {
+                epRes = 1;
+                showFound = false;
+                console.log('This should never happen, try to rename your VLC files cleanly (i.e. <SHOW NAME> Season <X> Episode <X> - <TITLE>)');
+            } else {
+                epRes = epRes[1];
+            }
+        } else {
+            epRes = epRes[1];
+        }
     }
     
-    setCurrentShow(tempShow);
+    setCurrentShow(showRes);
     setCurrentEp(Number(epRes));
     resetPlayback(false);
     
-    VLCSetupShow();
+    if (showFound != false) {
+        VLCSetupShow();
+    } else {
+        settingsArray.vlcEnabled = false;
+        //stop vlc updater??
+        console.log("Turning VLC off for this session because we couldn't ID the show/episode.");
+    }
 }
 
 function VLCSetupShow() {

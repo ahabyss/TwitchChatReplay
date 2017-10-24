@@ -68,7 +68,7 @@ function build(browser, buildMode) {
         var binDirectory = BIN_DIRECTORY.replace('{browser}', browser);
         var destDirectory = DESTINATION_DIRECTORY.replace('{browser}', browser);
         var browserSourceDirectory = BROWSER_SOURCE_DIRECTORY.replace('{browser}', browser);
-        var minifyCode = buildMode === 'release';
+        var minifyCode = false;//buildMode === 'release';
         var firefoxDummyVariable = browser === 'firefox';
 
         console.log('\nBuilding Twitch Chat Replay version ' + projectJSON.version + ': ' + browser + ' ' + buildMode + '...');
